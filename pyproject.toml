@@ -1,0 +1,107 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitexpose"
+version = "3.0.0"
+description = "Advanced security scanner for exposed files, vulnerable frameworks, AI infrastructure, and supply chain threats"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "GitExpose Contributors"}
+]
+keywords = [
+    "security",
+    "scanner",
+    "pentesting",
+    "git",
+    "exposure",
+    "vulnerability",
+    "CVE-2025-55182",
+    "react2shell",
+    "ml-security",
+    "llm-security",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: System :: Networking :: Monitoring",
+]
+dependencies = [
+    "aiohttp>=3.9.0",
+    "click>=8.1.0",
+    "colorama>=0.4.6",
+]
+
+[project.optional-dependencies]
+advanced = [
+    "aiofiles>=23.2.0",
+    "GitPython>=3.1.40",
+    "rich>=13.7.0",
+]
+cloud = [
+    "boto3>=1.34.0",
+    "google-cloud-compute>=1.19.0",
+    "azure-mgmt-compute>=30.0.0",
+]
+full = [
+    "aiofiles>=23.2.0",
+    "GitPython>=3.1.40",
+    "rich>=13.7.0",
+    "boto3>=1.34.0",
+    "shodan>=1.31.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "aioresponses>=0.7.4",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+gitexpose = "gitexpose.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/fevra-dev/GitExpose"
+Documentation = "https://github.com/fevra-dev/GitExpose/tree/main/docs"
+Issues = "https://github.com/fevra-dev/GitExpose/issues"
+Changelog = "https://github.com/fevra-dev/GitExpose/releases"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gitexpose*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
