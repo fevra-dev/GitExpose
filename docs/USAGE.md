@@ -33,7 +33,7 @@ A comprehensive guide to installing, configuring, and using GitExpose for scanni
 cd /path/to/GitExpose
 
 # Or clone from GitHub (when published)
-git clone https://github.com/yourusername/gitexpose.git
+git clone https://github.com/fevra-dev/GitExpose.git
 cd gitexpose
 ```
 

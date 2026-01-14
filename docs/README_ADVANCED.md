@@ -300,7 +300,7 @@ These modules are built on current threat intelligence:
 pip install gitexpose[advanced]
 
 # Or install from source
-git clone https://github.com/yourusername/gitexpose.git
+git clone https://github.com/fevra-dev/GitExpose.git
 cd gitexpose
 pip install -e ".[advanced]"
 ```
@@ -383,6 +383,6 @@ Contributions welcome! Areas of interest:
 
 **Built for the security researchers defending against 2025's $10.5 trillion cybercrime economy**
 
-[Report Bug](https://github.com/yourusername/gitexpose/issues) · [Request Feature](https://github.com/yourusername/gitexpose/issues)
+[Report Bug](https://github.com/fevra-dev/GitExpose/issues) · [Request Feature](https://github.com/fevra-dev/GitExpose/issues)
 
 </div>
