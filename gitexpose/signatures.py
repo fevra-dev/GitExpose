@@ -5,10 +5,11 @@ This module validates HTTP responses to confirm real vulnerabilities
 and filter out false positives (custom 404 pages, WAF blocks, etc).
 """
 
+import logging
 from typing import Optional, Tuple
 from urllib.parse import urlparse
-from .models import PathDefinition, ScanResult, Severity
-import logging
+
+from .models import PathDefinition, ScanResult
 
 logger = logging.getLogger(__name__)
 
