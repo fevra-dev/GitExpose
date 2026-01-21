@@ -101,7 +101,7 @@ def print_finding(severity: str, message: str, url: str = None):
 
 
 @click.group()
-@click.version_option(version="3.0.0", prog_name="GitExpose")
+@click.version_option(version="0.1.0", prog_name="GitExpose")
 def cli():
     """
     GitExpose Advanced - Next-Gen Security Scanner

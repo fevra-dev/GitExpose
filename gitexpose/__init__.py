@@ -29,7 +29,7 @@ Usage:
     from gitexpose.secrets import SecretExtractor
 """
 
-__version__ = "3.0.0"
+__version__ = "0.1.0"
 __author__ = "GitExpose Contributors"
 __license__ = "MIT"
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitexpose"
-version = "3.0.0"
+version = "0.1.0"
 description = "Advanced security scanner for exposed files, vulnerable frameworks, AI infrastructure, and supply chain threats"
 readme = "README.md"
 license = {text = "MIT"}

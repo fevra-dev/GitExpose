@@ -1,5 +1,6 @@
 """Test scanner functionality."""
 
+import re
 import pytest
 from aioresponses import aioresponses
 from gitexpose.scanner import GitExposeScanner
@@ -26,9 +27,13 @@ class TestScanner:
                 headers={"Content-Type": "text/plain"},
             )
 
-            # Mock other paths as 404
-            for _ in range(100):  # Enough for all paths
-                mocked.get(url=aioresponses.ANY, status=404, body="Not Found")
+            # Mock other paths as 404 using regex pattern
+            mocked.get(
+                re.compile(r"https://example\.com/.*"),
+                status=404,
+                body="Not Found",
+                repeat=True,
+            )
 
             report = await scanner.scan([target])
 
