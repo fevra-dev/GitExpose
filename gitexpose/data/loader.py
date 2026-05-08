@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -62,6 +63,12 @@ def load_credential_patterns(path: Optional[Path] = None) -> List[CredentialPatt
         for field in _REQUIRED_FIELDS:
             if field not in entry:
                 raise PatternLoadError(f"Pattern entry missing required field '{field}': {entry}")
+        try:
+            re.compile(entry["regex"])
+        except re.error as exc:
+            raise PatternLoadError(
+                f"Pattern '{entry['name']}' has invalid regex {entry['regex']!r}: {exc}"
+            ) from exc
         patterns.append(
             CredentialPattern(
                 name=entry["name"],
