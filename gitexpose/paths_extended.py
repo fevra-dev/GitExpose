@@ -896,7 +896,7 @@ def get_all_paths_combined() -> List[PathDefinition]:
     
     Import the main paths and combine with extended paths.
     """
-    from ..paths import get_all_paths
+    from .paths import get_all_paths
 
     main_paths = get_all_paths()
     extended = get_extended_paths()
