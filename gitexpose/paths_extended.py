@@ -16,7 +16,7 @@ Import this alongside the main paths.py to extend detection coverage.
 
 from typing import List
 
-from ..models import Category, PathDefinition, Severity
+from .models import Category, PathDefinition, Severity
 
 # ============================================================
 # EXTENDED SENSITIVE PATHS DATABASE
@@ -721,6 +721,166 @@ EXTENDED_PATHS: List[PathDefinition] = [
         description="Public HTML backup exposed",
         signatures=["PK"],
         content_types=["application/zip"],
+    ),
+
+    # --------------------------------------------------------
+    # v0.2 — EMPIRICAL AI-TOOL CONFIG PATHS
+    # Derived from public threat intelligence and real-world leak observations.
+    # --------------------------------------------------------
+
+    # Continue.dev VS Code AI extension
+    PathDefinition(
+        path=".continue/agents/new-config.yaml",
+        category=Category.CONFIG,
+        severity=Severity.CRITICAL,
+        description="Continue.dev VS Code AI extension agent config (often contains AI provider keys)",
+        signatures=["models:", "apiKey", "provider:"],
+        content_types=["text/yaml", "application/x-yaml", "text/plain"],
+    ),
+    PathDefinition(
+        path=".continue/config.yaml",
+        category=Category.CONFIG,
+        severity=Severity.CRITICAL,
+        description="Continue.dev primary config file",
+        signatures=["models:", "apiKey"],
+        content_types=["text/yaml", "application/x-yaml", "text/plain"],
+    ),
+    # Claude Code credentials
+    PathDefinition(
+        path="claude/.credentials.json",
+        category=Category.CONFIG,
+        severity=Severity.CRITICAL,
+        description="Claude Code credentials file",
+        signatures=["sk-ant-"],
+        content_types=["application/json"],
+    ),
+    # MCP server configs
+    PathDefinition(
+        path="mcp.json",
+        category=Category.CONFIG,
+        severity=Severity.HIGH,
+        description="MCP server configuration",
+        signatures=["mcpServers", "command"],
+        content_types=["application/json"],
+    ),
+    PathDefinition(
+        path=".cursor/mcp.json",
+        category=Category.CONFIG,
+        severity=Severity.HIGH,
+        description="Cursor IDE MCP server configuration",
+        signatures=["mcpServers"],
+        content_types=["application/json"],
+    ),
+    # .NET build output (frequently committed accidentally)
+    PathDefinition(
+        path="bin/Debug/net8.0/appsettings.json",
+        category=Category.CONFIG,
+        severity=Severity.CRITICAL,
+        description=".NET build output containing appsettings",
+        signatures=["ConnectionStrings", "ApiKey"],
+        content_types=["application/json"],
+    ),
+    PathDefinition(
+        path="bin/Release/net8.0/appsettings.json",
+        category=Category.CONFIG,
+        severity=Severity.CRITICAL,
+        description=".NET release build output containing appsettings",
+        signatures=["ConnectionStrings", "ApiKey"],
+        content_types=["application/json"],
+    ),
+    # Drizzle ORM
+    PathDefinition(
+        path="drizzle.config.ts",
+        category=Category.CONFIG,
+        severity=Severity.MEDIUM,
+        description="Drizzle ORM config (may contain DB and AI keys)",
+        signatures=["dbCredentials", "schema"],
+        content_types=["application/typescript", "text/plain"],
+    ),
+    # CrewAI
+    PathDefinition(
+        path="agents.yaml",
+        category=Category.CONFIG,
+        severity=Severity.HIGH,
+        description="CrewAI agent definitions",
+        signatures=["llm:", "role:", "goal:"],
+        content_types=["text/yaml", "application/x-yaml"],
+    ),
+    PathDefinition(
+        path="tasks.yaml",
+        category=Category.CONFIG,
+        severity=Severity.HIGH,
+        description="CrewAI task definitions",
+        signatures=["agent:", "expected_output:"],
+        content_types=["text/yaml", "application/x-yaml"],
+    ),
+    PathDefinition(
+        path="crew.yaml",
+        category=Category.CONFIG,
+        severity=Severity.HIGH,
+        description="CrewAI crew definition",
+        signatures=["agents:", "tasks:"],
+        content_types=["text/yaml", "application/x-yaml"],
+    ),
+    # AutoGen
+    PathDefinition(
+        path="OAI_CONFIG_LIST",
+        category=Category.CONFIG,
+        severity=Severity.CRITICAL,
+        description="AutoGen API config list (multi-provider key aggregator)",
+        signatures=["api_key", "model"],
+        content_types=["application/json", "text/plain"],
+    ),
+    # LiteLLM proxy
+    PathDefinition(
+        path="litellm_config.yaml",
+        category=Category.CONFIG,
+        severity=Severity.CRITICAL,
+        description="LiteLLM gateway config (multi-provider credentials)",
+        signatures=["model_list", "api_key"],
+        content_types=["text/yaml", "application/x-yaml"],
+    ),
+    # .env example/backup variants (frequently contain real keys despite name)
+    PathDefinition(
+        path=".env.local.example",
+        category=Category.ENV,
+        severity=Severity.CRITICAL,
+        description="Example env file (frequently contains real keys despite name)",
+        signatures=["API_KEY", "SECRET", "TOKEN"],
+        content_types=["text/plain"],
+    ),
+    PathDefinition(
+        path=".env.production.example",
+        category=Category.ENV,
+        severity=Severity.CRITICAL,
+        description="Example production env file (frequently contains real keys)",
+        signatures=["API_KEY", "SECRET", "TOKEN"],
+        content_types=["text/plain"],
+    ),
+    PathDefinition(
+        path=".env.bak",
+        category=Category.BACKUP,
+        severity=Severity.CRITICAL,
+        description="Backup .env file",
+        signatures=["API_KEY", "SECRET", "TOKEN"],
+        content_types=["text/plain"],
+    ),
+    PathDefinition(
+        path=".env.local.bak",
+        category=Category.BACKUP,
+        severity=Severity.CRITICAL,
+        description="Backup .env.local file",
+        signatures=["API_KEY", "SECRET", "TOKEN"],
+        content_types=["text/plain"],
+    ),
+    # Firebase config (contains Firebase API key)
+    PathDefinition(
+        path="firebase-config.js",
+        category=Category.CONFIG,
+        severity=Severity.HIGH,
+        description="Firebase client config (contains Firebase API key)",
+        signatures=["apiKey", "authDomain", "projectId"],
+        content_types=["application/javascript", "text/javascript"],
     ),
 ]
 
