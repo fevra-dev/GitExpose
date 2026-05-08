@@ -59,6 +59,9 @@ class ScanResult:
     response_length: int = 0  # Response body length
     content_type: str = ""  # Response content-type
     error: Optional[str] = None  # Error message if request failed
+    # v0.2 additions: compliance metadata
+    attack_class: Optional[str] = None  # OWASP LLM Top 10 ID, e.g. "LLM06"
+    atlas_technique: Optional[str] = None  # MITRE ATLAS technique, e.g. "AML.T0019"
 
 
 @dataclass
