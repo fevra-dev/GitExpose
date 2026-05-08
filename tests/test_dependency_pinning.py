@@ -37,3 +37,15 @@ def test_non_ai_packages_unpinned_are_not_flagged():
         "requests\nflask\n", source="requirements.txt"
     )
     assert findings == []
+
+
+def test_pep508_environment_markers_handled():
+    """Lines with PEP 508 markers must still be parsed."""
+    text = (
+        "openai>=1.0; python_version>='3.8'\n"
+        "anthropic==0.8.0; python_version<'3.12'\n"
+    )
+    findings = DependencyPinningScanner().scan(text, source="requirements.txt")
+    flagged = {f["package"] for f in findings}
+    assert "openai" in flagged       # unpinned with marker — must flag
+    assert "anthropic" not in flagged  # pinned with marker — must not flag

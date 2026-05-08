@@ -37,7 +37,7 @@ class DependencyPinningScanner:
     def scan(self, content: str, source: str = "requirements.txt") -> List[Dict]:
         findings: List[Dict] = []
         for line in content.splitlines():
-            stripped = line.split("#", 1)[0].strip()
+            stripped = line.split("#", 1)[0].split(";", 1)[0].strip()
             if not stripped:
                 continue
             match = _REQ_LINE.match(stripped)

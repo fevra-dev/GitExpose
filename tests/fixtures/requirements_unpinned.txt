@@ -1,5 +1,5 @@
 litellm
-langchain
-openai
+langchain>=0.3.0
+openai~=1.50.0
 crewai
 requests==2.31.0
