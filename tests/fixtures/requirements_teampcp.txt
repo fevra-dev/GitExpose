@@ -1,0 +1,4 @@
+litellm==1.82.7
+telnyx==4.87.1
+xinference==2.6.1
+requests==2.31.0
