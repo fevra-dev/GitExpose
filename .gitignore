@@ -76,6 +76,7 @@ venv.bak/
 *.csv
 *.html
 !docs/*.html
+!gitexpose/data/*.json
 
 # Git dumps
 git-dumps/
