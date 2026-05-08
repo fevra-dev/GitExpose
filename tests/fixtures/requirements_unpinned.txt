@@ -1,0 +1,5 @@
+litellm
+langchain
+openai
+crewai
+requests==2.31.0
