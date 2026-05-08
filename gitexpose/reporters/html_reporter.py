@@ -286,11 +286,14 @@ class HTMLReporter:
                 background: white;
                 padding: 0;
             }}
-            
+
             .finding {{
                 page-break-inside: avoid;
             }}
         }}
+
+        .badge-owasp {{ background: #6f42c1; color: white; padding: 2px 6px; border-radius: 3px; margin-left: 4px; font-size: 11px; }}
+        .badge-atlas {{ background: #d73a49; color: white; padding: 2px 6px; border-radius: 3px; margin-left: 4px; font-size: 11px; }}
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
@@ -422,11 +425,17 @@ class HTMLReporter:
             target = item['target']
             finding = item['finding']
 
+            badges = f'<span class="severity-badge {finding.severity.value.lower()}">{finding.severity.value}</span>'
+            if finding.attack_class:
+                badges += f'<span class="badge badge-owasp">OWASP {finding.attack_class}</span>'
+            if finding.atlas_technique:
+                badges += f'<span class="badge badge-atlas">ATLAS {finding.atlas_technique}</span>'
+
             findings_html.append(f"""
             <div class="finding {finding.severity.value.lower()}">
                 <div class="finding-header">
                     <div class="finding-title">{finding.path}</div>
-                    <span class="severity-badge {finding.severity.value.lower()}">{finding.severity.value}</span>
+                    <div>{badges}</div>
                 </div>
                 <div class="finding-url">{finding.url}</div>
                 <div class="finding-description">{finding.description}</div>

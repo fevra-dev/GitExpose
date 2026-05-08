@@ -28,6 +28,8 @@ class CSVReporter(BaseReporter):
                 "status_code",
                 "evidence",
                 "response_length",
+                "attack_class",
+                "atlas_technique",
             ]
         )
 
@@ -45,6 +47,8 @@ class CSVReporter(BaseReporter):
                         finding.status_code,
                         finding.evidence,
                         finding.response_length,
+                        finding.attack_class or "",
+                        finding.atlas_technique or "",
                     ]
                 )
 

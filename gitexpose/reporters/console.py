@@ -106,5 +106,19 @@ class ConsoleReporter(BaseReporter):
             f"  Status: {finding.status_code} | Size: {finding.response_length} bytes"
         )
 
+        if finding.attack_class or finding.atlas_technique:
+            parts = []
+            if finding.attack_class:
+                parts.append(f"OWASP {finding.attack_class}")
+            if finding.atlas_technique:
+                parts.append(f"ATLAS {finding.atlas_technique}")
+            compliance_str = " · ".join(parts)
+            if self.no_color:
+                lines.append(f"  Compliance: {compliance_str}")
+            else:
+                lines.append(
+                    click.style(f"  Compliance: {compliance_str}", fg="cyan")
+                )
+
         return lines
 
