@@ -56,3 +56,28 @@ def test_get_all_paths_combined_imports_cleanly():
     from gitexpose.paths_extended import get_all_paths_combined
     paths = get_all_paths_combined()
     assert len(paths) > 0
+
+
+def test_llm_exposure_scanner_categories_extended():
+    """v0.2 expands AI_TOOL_CONFIGS with new categories."""
+    from gitexpose.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS
+
+    expected_categories = {
+        "continue_dev",
+        "claude_credentials",
+        "litellm_proxy",
+        "mcp_configs",
+        "net_build_output",
+        "drizzle_orm",
+        "crewai_configs",
+        "autogen_configs",
+    }
+    assert expected_categories.issubset(set(AI_TOOL_CONFIGS.keys()))
+
+
+def test_llm_exposure_scanner_categories_have_owasp_atlas():
+    from gitexpose.advanced.llm_exposure_scanner import AI_TOOL_CONFIGS
+
+    for name, cfg in AI_TOOL_CONFIGS.items():
+        assert "attack_class" in cfg, f"{name} missing attack_class"
+        assert "atlas_technique" in cfg, f"{name} missing atlas_technique"

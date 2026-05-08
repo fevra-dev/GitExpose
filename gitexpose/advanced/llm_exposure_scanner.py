@@ -50,6 +50,96 @@ class Severity(Enum):
     INFO = "info"
 
 
+# v0.2 — AI tool config path categories with OWASP/ATLAS metadata.
+# Consumed by local_fs_scanner for empirical config-file detection.
+# Derived from public threat intelligence and real-world leak observations.
+AI_TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
+    "continue_dev": {
+        "paths": [
+            ".continue/",
+            ".continue/agents/",
+            ".continue/config.yaml",
+            ".continue/agents/new-config.yaml",
+        ],
+        "description": "Continue.dev VS Code AI extension config (often contains AI provider keys)",
+        "severity": "CRITICAL",
+        "recommendation": "Add .continue/ to .gitignore",
+        "attack_class": "LLM06",
+        "atlas_technique": "AML.T0019",
+    },
+    "claude_credentials": {
+        "paths": ["claude/.credentials.json", "claude/credentials.json"],
+        "description": "Claude Code credentials file",
+        "severity": "CRITICAL",
+        "recommendation": "Move to ~/.claude/ outside repo; never commit",
+        "attack_class": "LLM06",
+        "atlas_technique": "AML.T0019",
+    },
+    "litellm_proxy": {
+        "paths": [
+            "**/LiteLLM*config*.yaml",
+            "**/litellm*.yaml",
+            "**/litellm*.md",
+            "**/litellm_config.yaml",
+        ],
+        "description": "LiteLLM proxy config — multi-provider credential aggregator",
+        "severity": "CRITICAL",
+        "recommendation": "Use environment variables; never commit credentials in YAML",
+        "attack_class": "LLM06",
+        "atlas_technique": "AML.T0019",
+    },
+    "mcp_configs": {
+        "paths": [
+            "mcp.json",
+            ".cursor/mcp.json",
+            ".continue/mcp.json",
+            "**/@config.json.md",
+        ],
+        "description": "MCP server configuration files",
+        "severity": "HIGH",
+        "recommendation": "Audit MCP server entries; never commit credentials",
+        "attack_class": "LLM06",
+        "atlas_technique": "AML.T0059",
+    },
+    "net_build_output": {
+        "paths": [
+            "**/bin/Debug/**/appsettings*.json",
+            "**/bin/Release/**/appsettings*.json",
+            "**/obj/**/appsettings*.json",
+        ],
+        "description": ".NET build output containing appsettings — should never be committed",
+        "severity": "CRITICAL",
+        "recommendation": "Add bin/ and obj/ to .gitignore",
+        "attack_class": "LLM06",
+        "atlas_technique": "AML.T0019",
+    },
+    "drizzle_orm": {
+        "paths": ["drizzle.config.ts", "**/drizzle.config.ts"],
+        "description": "Drizzle ORM config (may contain DB connection strings and AI keys)",
+        "severity": "MEDIUM",
+        "recommendation": "Reference env vars; never inline credentials",
+        "attack_class": "LLM06",
+        "atlas_technique": "AML.T0019",
+    },
+    "crewai_configs": {
+        "paths": ["agents.yaml", "tasks.yaml", "crew.yaml", "**/agents.yaml"],
+        "description": "CrewAI agent/task/crew definitions (may reference LLM credentials)",
+        "severity": "HIGH",
+        "recommendation": "Reference env vars in llm: section; never inline keys",
+        "attack_class": "LLM06",
+        "atlas_technique": "AML.T0019",
+    },
+    "autogen_configs": {
+        "paths": ["OAI_CONFIG_LIST", "**/OAI_CONFIG_LIST"],
+        "description": "AutoGen multi-provider API config list",
+        "severity": "CRITICAL",
+        "recommendation": "Move config to environment; never commit",
+        "attack_class": "LLM06",
+        "atlas_technique": "AML.T0019",
+    },
+}
+
+
 @dataclass
 class LLMExposure:
     """Represents an LLM/RAG exposure finding"""

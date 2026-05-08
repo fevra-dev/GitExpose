@@ -17,7 +17,7 @@ Cutting-edge security scanning capabilities addressing the 2025 threat landscape
 
 from .api_discovery import APIDiscovery
 from .cicd_scanner import CICDScanner
-from .cloud_scanner import CloudScanner
+from .cloud_scanner import CloudAssetScanner
 from .iac_scanner import IaCScanner
 from .invisible_unicode_detector import InvisibleUnicodeAnalyzer, InvisibleUnicodeScanner
 from .llm_exposure_scanner import LLMExposureScanner, LLMScanResult
@@ -46,7 +46,7 @@ __all__ = [
     'InvisibleUnicodeAnalyzer',
 
     # Cloud Security
-    'CloudScanner',
+    'CloudAssetScanner',
 
     # Source Maps
     'SourceMapAnalyzer',
