@@ -1,0 +1,4 @@
+huggingface-cli==0.0.1
+openai-sdk==1.0.0
+anthropicc==0.5.0
+requests==2.31.0
