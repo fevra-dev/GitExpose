@@ -21,8 +21,10 @@ _MULTI_PROVIDER_AGGREGATORS = (
     re.compile(r"(^|/)\.continue/agents/.*\.yaml$"),
 )
 
-# Identify which finding dicts represent secrets vs other finding types.
-_SECRET_TYPES_PREFIX_HINTS = (
+# Suffix tokens that indicate a finding type is a credential.
+# Substring matching (not endswith) so versioned variants like
+# langsmith_api_key_v2 and langsmith_api_key_legacy are correctly identified.
+_SECRET_TYPE_TOKENS = (
     "_api_key",
     "_token",
     "_pat",
@@ -30,14 +32,24 @@ _SECRET_TYPES_PREFIX_HINTS = (
     "_key",
     "_sid",
     "_password",
+    "_url",  # DB connection strings: postgres_url, mongodb_url, mysql_url
     "private_key",
     "jwt_token",
 )
 
+# Explicit allow-list for credential types whose names don't fit the substring heuristic.
+_EXPLICIT_SECRET_TYPES = frozenset({
+    "elevenlabs_context_bound",
+})
+
 
 def _is_secret(finding: Dict) -> bool:
     t = finding.get("type", "")
-    return any(t.endswith(h) or t == h.lstrip("_") for h in _SECRET_TYPES_PREFIX_HINTS)
+    if not t:
+        return False
+    if t in _EXPLICIT_SECRET_TYPES:
+        return True
+    return any(token in t for token in _SECRET_TYPE_TOKENS)
 
 
 def _is_aggregator_path(source: str) -> bool:

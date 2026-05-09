@@ -90,3 +90,54 @@ def test_includes_atlas_metadata_on_cluster_finding():
     cluster = next(f for f in out if f["type"] == "credential_cluster")
     assert cluster["attack_class"] == "LLM06"
     assert cluster["atlas_technique"] == "AML.T0019"
+
+
+def test_langsmith_v2_recognized_as_secret():
+    """Regression: langsmith_api_key_v2 was being excluded from cluster detection
+    because its name doesn't end in _api_key (ends in _v2)."""
+    findings = [
+        _secret("langsmith_api_key_v2", "shared.env"),
+        _secret("openai_api_key", "shared.env"),
+    ]
+    out = process(findings)
+    assert any(f["type"] == "credential_cluster" for f in out)
+
+
+def test_langsmith_legacy_recognized_as_secret():
+    findings = [
+        _secret("langsmith_api_key_legacy", "shared.env"),
+        _secret("openai_api_key", "shared.env"),
+    ]
+    out = process(findings)
+    assert any(f["type"] == "credential_cluster" for f in out)
+
+
+def test_elevenlabs_context_bound_recognized_as_secret():
+    """Regression: elevenlabs_context_bound has no recognized suffix.
+    Must be in the explicit allow-list."""
+    findings = [
+        _secret("elevenlabs_context_bound", "shared.env"),
+        _secret("openai_api_key", "shared.env"),
+    ]
+    out = process(findings)
+    assert any(f["type"] == "credential_cluster" for f in out)
+
+
+def test_db_connection_strings_recognized_as_secrets():
+    """postgres_url / mongodb_url contain credentials and must trigger clusters."""
+    findings = [
+        _secret("postgres_url", "shared.env"),
+        _secret("openai_api_key", "shared.env"),
+    ]
+    out = process(findings)
+    assert any(f["type"] == "credential_cluster" for f in out)
+
+
+def test_non_secret_findings_still_excluded():
+    """Sanity: non-secret types must still NOT trigger cluster detection."""
+    findings = [
+        {"type": "unpinned_ai_middleware", "source": "x.txt", "package": "openai"},
+        {"type": "pth_persistence", "source": "x.txt"},
+    ]
+    out = process(findings)
+    assert not any(f["type"] == "credential_cluster" for f in out)
