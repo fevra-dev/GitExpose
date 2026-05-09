@@ -800,6 +800,7 @@ def list_tools():
         ("llm-scan", "LLM/RAG infrastructure exposure", "Vector DBs, prompts, configs"),
         ("unicode-scan", "Invisible Unicode detection", "GlassWorm patterns"),
         ("mcp", "Start MCP server", "For AI agent integration"),
+        ("supply-chain", "Local-filesystem scan for supply-chain risks (TeamPCP-class)", "--output json"),
     ]
 
     if RICH_AVAILABLE:
