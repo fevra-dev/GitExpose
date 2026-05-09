@@ -58,7 +58,9 @@ class LocalFilesystemScanner:
                 continue  # binary
             relative = str(path.relative_to(root))
             findings.extend(self._scan_content(content, relative, path.name))
-        return findings
+        # v0.2 — cluster post-processor adds blast-radius findings
+        from .credential_cluster import process as cluster_process
+        return cluster_process(findings)
 
     def _iter_files(self, root: Path) -> Iterable[Path]:
         for path in root.rglob("*"):

@@ -87,3 +87,20 @@ def test_scanner_dedupes_known_bad_and_slopsquat(tmp_path: Path):
     assert "known_malicious_package_version" in types
     assert "slopsquatting" not in types
     assert len(gptplus_findings) == 1
+
+
+def test_local_fs_scanner_emits_cluster_finding(tmp_path: Path):
+    (tmp_path / "shared.env").write_text(
+        "GROQ_API_KEY=gsk_" + "a" * 52 + "\n"
+        "OPENAI_API_KEY=sk-" + "b" * 30 + "\n"
+    )
+    findings = LocalFilesystemScanner().scan(tmp_path)
+    assert any(f["type"] == "credential_cluster" for f in findings)
+
+
+def test_local_fs_scanner_emits_multi_provider_for_oai_config_list(tmp_path: Path):
+    (tmp_path / "OAI_CONFIG_LIST").write_text(
+        '{"groq": "gsk_' + "a" * 52 + '", "openai": "sk-' + "b" * 30 + '"}\n'
+    )
+    findings = LocalFilesystemScanner().scan(tmp_path)
+    assert any(f["type"] == "multi_provider_credential_file" for f in findings)
