@@ -1,22 +1,22 @@
-# GitExpose Advanced Features v3.0
+# GitExpose Advanced Features
 
 <div align="center">
 
-**🔬 Next-Generation Security Scanner for the 2025 Threat Landscape**
+**Security Scanner for AI and Dev Infrastructure**
 
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![CVE](https://img.shields.io/badge/CVE--2025--55182-React2Shell-red.svg)](#react2shell-detection)
 
-*Addressing cutting-edge attack vectors: React2Shell, ML Supply Chain Poisoning, LLM Infrastructure Exposure, and Invisible Unicode Attacks*
+*Detect React2Shell, ML supply-chain poisoning, LLM infrastructure exposure, and invisible Unicode attacks*
 
 </div>
 
 ---
 
-## 🎯 Executive Summary
+## Overview
 
-GitExpose v3.0 extends beyond traditional sensitive file detection to address the **2025-2026 threat landscape**, incorporating detection capabilities for:
+GitExpose v0.2.0 ships five advanced detection modules in `gitexpose/advanced/`, alongside the core credential and supply-chain scanners. See [docs/COVERAGE.md](COVERAGE.md) for the full detection matrix (23-provider credential matrix, supply-chain indicators, compliance taxonomies).
 
 | Module | Threat Addressed | Research Basis |
 |--------|------------------|----------------|
@@ -24,11 +24,11 @@ GitExpose v3.0 extends beyond traditional sensitive file detection to address th
 | **ML Model Scanner** | Pickle/PyTorch deserialization RCE | nullifAI, HuggingFace poisoning |
 | **LLM Exposure Scanner** | AI infrastructure compromise | RAG poisoning, prompt leakage |
 | **Unicode Detector** | GlassWorm-style supply chain | Invisible code injection |
-| **MCP Server** | AI agent orchestration | HexStrike AI patterns |
+| **MCP Server** | AI agent integration | Model Context Protocol |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Full security audit
@@ -40,28 +40,31 @@ gitexpose ml-scan https://api.example.com
 gitexpose llm-scan https://ai-app.com
 gitexpose unicode-scan --file suspicious.js
 
+# Local supply-chain scan
+gitexpose supply-chain ./my-project
+
 # Start MCP server for AI agents
 gitexpose mcp
 ```
 
 ---
 
-## 📦 New Modules
+## Advanced Modules
 
 ### 1. React2Shell Detector (`react2shell_detector.py`)
 
-Detects the **CVE-2025-55182** vulnerability - a critical pre-authentication RCE affecting React Server Components, Next.js, and the Flight protocol.
+Detects the **CVE-2025-55182** vulnerability — a critical pre-authentication RCE affecting React Server Components, Next.js, and the Flight protocol.
 
 **What it detects:**
 - Exposed RSC (React Server Components) endpoints
 - Flight protocol serialization endpoints
-- Vulnerable Next.js configurations (13.x-15.x)
+- Vulnerable Next.js configurations (13.x–15.x)
 - Server action exports
 - Build manifest exposure
 
 **Technical Details:**
 ```python
-from gitexpose.react2shell_detector import React2ShellDetector
+from gitexpose.advanced import React2ShellDetector
 
 detector = React2ShellDetector(deep_scan=True)
 finding = await detector.scan("https://nextjs-app.com")
@@ -92,12 +95,12 @@ Scans for exposed machine learning model files that could execute arbitrary code
 **Detected Formats:**
 | Extension | Format | Risk Level |
 |-----------|--------|------------|
-| `.pkl`, `.pickle` | Python Pickle | 🔴 Critical |
-| `.pt`, `.pth`, `.bin` | PyTorch | 🔴 Critical |
-| `.joblib` | Joblib | 🔴 Critical |
-| `.h5`, `.hdf5`, `.keras` | Keras/TF | 🟠 High |
-| `.onnx` | ONNX | 🟡 Medium |
-| `.safetensors` | SafeTensors | 🟢 Low |
+| `.pkl`, `.pickle` | Python Pickle | Critical |
+| `.pt`, `.pth`, `.bin` | PyTorch | Critical |
+| `.joblib` | Joblib | Critical |
+| `.h5`, `.hdf5`, `.keras` | Keras/TF | High |
+| `.onnx` | ONNX | Medium |
+| `.safetensors` | SafeTensors | Low |
 
 **Deep Analysis Features:**
 - Dangerous pickle opcode detection (`GLOBAL`, `REDUCE`, etc.)
@@ -106,7 +109,7 @@ Scans for exposed machine learning model files that could execute arbitrary code
 - 7z compression evasion technique detection
 
 ```python
-from gitexpose.ml_model_scanner import MLModelScanner
+from gitexpose.advanced import MLModelScanner
 
 scanner = MLModelScanner(deep_analysis=True)
 result = await scanner.scan("https://ml-api.com")
@@ -114,7 +117,7 @@ result = await scanner.scan("https://ml-api.com")
 for model in result.exposed_models:
     print(f"[{model.risk_level.value}] {model.path}")
     for indicator in model.indicators:
-        print(f"  ⚠ {indicator.description}")
+        print(f"  {indicator.description}")
 ```
 
 ---
@@ -141,7 +144,7 @@ Detects exposed AI/LLM infrastructure as organizations rapidly deploy AI without
 - Agent configs reveal tool permissions and attack surface
 
 ```python
-from gitexpose.llm_exposure_scanner import LLMExposureScanner
+from gitexpose.advanced import LLMExposureScanner
 
 scanner = LLMExposureScanner()
 result = await scanner.scan("https://ai-app.com")
@@ -162,16 +165,16 @@ Detects invisible Unicode characters used in supply chain attacks like **GlassWo
 
 | Category | Characters | Threat Level |
 |----------|------------|--------------|
-| **Zero-Width** | ZWSP, ZWNJ, ZWJ | 🟡 Medium |
-| **Variation Selectors** | VS1-VS256 | 🔴 High |
-| **Bidirectional** | RLO, LRO (Trojan Source) | 🔴 Critical |
-| **Tag Characters** | U+E0000-E007F | 🔴 High |
-| **Homoglyphs** | Cyrillic, Greek lookalikes | 🟡 Medium |
-| **PUA** | Private Use Area | 🟡 Medium |
+| **Zero-Width** | ZWSP, ZWNJ, ZWJ | Medium |
+| **Variation Selectors** | VS1–VS256 | High |
+| **Bidirectional** | RLO, LRO (Trojan Source) | Critical |
+| **Tag Characters** | U+E0000–E007F | High |
+| **Homoglyphs** | Cyrillic, Greek lookalikes | Medium |
+| **PUA** | Private Use Area | Medium |
 
 **GlassWorm Pattern Detection:**
 ```python
-from gitexpose.invisible_unicode_detector import InvisibleUnicodeAnalyzer
+from gitexpose.advanced import InvisibleUnicodeAnalyzer
 
 analyzer = InvisibleUnicodeAnalyzer(strict_mode=True)
 anomalies = analyzer.analyze(suspicious_code)
@@ -201,11 +204,6 @@ gitexpose unicode-scan --file suspicious-extension/index.js
 
 Implements the **Model Context Protocol** to expose GitExpose as tools for AI agents.
 
-**Why MCP?**
-- Enables autonomous security scanning by Claude, GPT, and other AI agents
-- Integrates with AI-powered security workflows (HexStrike AI pattern)
-- Allows chaining GitExpose with other security tools
-
 **Available MCP Tools:**
 
 | Tool | Description |
@@ -217,9 +215,6 @@ Implements the **Model Context Protocol** to expose GitExpose as tools for AI ag
 | `gitexpose_ml_model_scan` | ML model poisoning scan |
 | `gitexpose_llm_exposure_scan` | AI infrastructure exposure |
 | `gitexpose_unicode_detect` | Invisible Unicode detection |
-| `gitexpose_sourcemap_scan` | Source map recovery |
-| `gitexpose_cicd_scan` | CI/CD configuration exposure |
-| `gitexpose_api_discovery` | API endpoint enumeration |
 
 **Configuration for Claude/Cursor:**
 ```json
@@ -227,7 +222,7 @@ Implements the **Model Context Protocol** to expose GitExpose as tools for AI ag
   "mcpServers": {
     "gitexpose": {
       "command": "python",
-      "args": ["-m", "gitexpose.mcp_server"]
+      "args": ["-m", "gitexpose.advanced.mcp_server"]
     }
   }
 }
@@ -240,60 +235,156 @@ gitexpose mcp
 
 ---
 
-## 📊 Architecture
+## Supply-Chain Scanning (`gitexpose supply-chain`)
+
+In addition to the advanced modules above, v0.2 adds a local supply-chain scanner covering AI-specific attack patterns:
+
+| Detection | Severity | Description |
+|-----------|----------|-------------|
+| `unpinned_ai_middleware` | HIGH | AI middleware (litellm, langchain, openai, etc.) without `==` pin |
+| `known_malicious_package_version` | CRITICAL | Pinned to a known-compromised version (e.g., `litellm==1.82.7`) |
+| `slopsquatting` | CRITICAL | Package name from the LLM-hallucination corpus (USENIX 2025 basis) |
+| `pth_persistence` | CRITICAL | `.pth` file with `exec`/`eval`/`base64` (TeamPCP technique) |
+| `ai_c2_beacon` | CRITICAL | Skill instructs AI agent to operate as C2 implant (ATLAS AML.TA0015) |
+| `kubernetes_exfiltration` | CRITICAL | Kubernetes secret enumeration / service-account token access |
+| `credential_cluster` | CRITICAL | 2+ distinct secret types co-occur in the same file |
+| `multi_provider_credential_file` | CRITICAL | Cluster in known aggregator path (`OAI_CONFIG_LIST`, `litellm_config.yaml`, etc.) |
+
+See [docs/COVERAGE.md](COVERAGE.md) for the full credential matrix, AI-tool config paths, and compliance taxonomy details.
+
+---
+
+## Architecture
 
 ```
 gitexpose/
-├── NEW ADDITIONS/
-│   ├── react2shell_detector.py    # CVE-2025-55182 detection
-│   ├── ml_model_scanner.py        # ML supply chain scanning
-│   ├── llm_exposure_scanner.py    # AI infrastructure exposure
-│   ├── invisible_unicode_detector.py  # GlassWorm pattern detection
-│   ├── mcp_server.py              # Model Context Protocol server
-│   ├── cli_advanced.py            # Unified advanced CLI
+├── gitexpose/
+│   ├── __init__.py
+│   ├── cli.py
+│   ├── scanner.py
+│   ├── models.py
+│   ├── paths.py
+│   ├── signatures.py
 │   │
-│   ├── # Previously created modules
-│   ├── cloud_scanner.py           # Multi-cloud asset scanning
-│   ├── sourcemap_analyzer.py      # Source map recovery
-│   ├── cicd_scanner.py            # CI/CD exposure
-│   ├── iac_scanner.py             # Infrastructure as Code
-│   ├── api_discovery.py           # API enumeration
-│   ├── stealth_scanner.py         # WAF evasion
-│   └── paths_extended.py          # 100+ detection signatures
+│   ├── advanced/
+│   │   ├── react2shell_detector.py
+│   │   ├── ml_model_scanner.py
+│   │   ├── llm_exposure_scanner.py
+│   │   ├── invisible_unicode_detector.py
+│   │   ├── supply_chain_patterns.py
+│   │   ├── local_fs_scanner.py
+│   │   ├── credential_cluster.py
+│   │   ├── slopsquatting.py
+│   │   ├── known_bad_versions.py
+│   │   ├── dependency_pinning.py
+│   │   └── mcp_server.py
+│   │
+│   └── reporters/           # console, JSON, CSV, HTML, SARIF 2.1.0
+│
+├── docs/
+│   ├── COVERAGE.md          # Full detection matrix
+│   └── README_ADVANCED.md   # This file
+└── tests/                   # 122 tests
 ```
 
 ---
 
-## 🔬 Research Basis
+## Output Formats
 
-These modules are built on current threat intelligence:
+All scan modes support multiple output formats:
 
-### React2Shell (CVE-2025-55182)
-- **Source**: Microsoft Security Blog, Darktrace, Trend Micro
-- **Impact**: Unauthenticated RCE via single HTTP request
-- **Affected**: Next.js 13.x-15.x, React Server Components
-- **Weaponization**: Within hours of disclosure (28% of exploits in 2025)
+```bash
+# Console (default)
+gitexpose scan target.com --full-audit
 
-### ML Model Poisoning
-- **Source**: ReversingLabs "nullifAI" research
-- **Technique**: Broken pickle format evades PickleScan
-- **Platform**: HuggingFace, PyPI, npm
-- **Risk**: Arbitrary code execution on `torch.load()` or `pickle.load()`
+# JSON
+gitexpose scan target.com --full-audit -o json --out-file results.json
 
-### GlassWorm
-- **Source**: Truesec, Snyk, Dark Reading
-- **Technique**: Invisible Unicode variation selectors
-- **Target**: VS Code extensions, npm packages
-- **C2**: Solana blockchain (unkillable infrastructure)
+# HTML report
+gitexpose scan target.com --full-audit -o html --out-file report.html
 
-### LLM Security
-- **Source**: OWASP LLM Top 10 2025, Lakera, Prompt Security
-- **Threats**: RAG poisoning, indirect prompt injection, API key leakage
-- **Impact**: 99% of organizations experienced API security issues in 2025
+# CSV
+gitexpose scan target.com --full-audit -o csv --out-file results.csv
+
+# SARIF 2.1.0 (GitHub Advanced Security, VS Code, etc.)
+gitexpose scan target.com --full-audit -o sarif --out-file results.sarif
+```
+
+Every finding includes OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata, emitted in all output formats.
 
 ---
 
-## 🛠️ Installation
+## Research Basis
+
+| Threat | Source | Impact |
+|--------|--------|--------|
+| React2Shell | CVE-2025-55182 | CVSS 10.0 pre-auth RCE |
+| ML Poisoning | nullifAI research | Arbitrary code execution on `torch.load()` / `pickle.load()` |
+| GlassWorm | Truesec, Snyk | Invisible Unicode in VS Code extensions; Solana-hosted C2 |
+| RAG Poisoning | OWASP LLM Top 10 | AI manipulation via poisoned knowledge base |
+| Slopsquatting | USENIX 2025 | LLM-hallucinated package name abuse |
+| TeamPCP | Supply-chain incident | `.pth` persistence + data exfil via AI middleware |
+
+No external service is queried at scan time. All detections are local pattern matching.
+
+---
+
+## Use Cases
+
+### Security Audit
+```bash
+# Full audit with all modules; SARIF output for CI integration
+gitexpose scan target.com --full-audit -o sarif --out-file audit.sarif
+```
+
+### Bug Bounty
+```bash
+# Quick reconnaissance
+gitexpose scan target.com --react2shell --source-maps --git-dump
+```
+
+### AI Security Assessment
+```bash
+# Audit AI/ML deployments
+gitexpose llm-scan https://ai-app.com
+gitexpose ml-scan https://ml-api.com --deep-analysis
+```
+
+### Supply Chain Defense
+```bash
+# Check for invisible Unicode in a package
+gitexpose unicode-scan --file node_modules/suspicious-package/index.js
+
+# Scan local project for supply-chain risk
+gitexpose supply-chain ./my-project
+```
+
+### AI Agent Integration
+```bash
+# Start MCP server for autonomous scanning workflows
+gitexpose mcp
+```
+
+---
+
+## Roadmap (not yet implemented)
+
+The following are planned but not shipping in v0.2. Track via GitHub issues.
+
+- ML-powered anomaly detection engine (beyond static opcode analysis)
+- Runtime monitoring proxy (Pipelock-style)
+- Plugin architecture for custom detection rules
+- Web dashboard / REST API
+- Package pre-installation verification CLI
+- IDE plugins (VS Code, JetBrains)
+- Live external threat-intelligence enrichment
+- Full MITRE ATLAS coverage map document (metadata ships in v0.2; full coverage doc is v0.3)
+- Audio steganography detection (Telnyx-class)
+- Browser-agent misuse patterns
+
+---
+
+## Installation
 
 ```bash
 # Install with all dependencies
@@ -315,63 +406,9 @@ rich>=13.0.0  # Optional but recommended
 
 ---
 
-## 🎯 Use Cases
+## Contributing
 
-### Security Audit
-```bash
-# Full audit with all modules
-gitexpose scan target.com --full-audit -o html --out-file audit.html
-```
-
-### Bug Bounty
-```bash
-# Quick reconnaissance
-gitexpose scan target.com --react2shell --source-maps --git-dump
-```
-
-### AI Security Assessment
-```bash
-# Audit AI/ML deployments
-gitexpose llm-scan https://ai-app.com
-gitexpose ml-scan https://ml-api.com --deep-analysis
-```
-
-### Supply Chain Defense
-```bash
-# Check for compromised code
-gitexpose unicode-scan --file node_modules/suspicious-package/index.js
-```
-
-### AI Agent Integration
-```bash
-# Start MCP server for autonomous scanning
-gitexpose mcp
-```
-
----
-
-## 📈 Portfolio Talking Points
-
-> *"I built GitExpose to address the 2025 threat landscape where exploits are weaponized within hours. It detects React2Shell (CVE-2025-55182), scans for ML model supply chain attacks, identifies exposed AI infrastructure, and catches invisible Unicode used in GlassWorm-style attacks. The tool includes MCP integration for AI agent orchestration, positioning it for the autonomous security future."*
-
-**Key Differentiators:**
-1. **React2Shell Detection** - No other open-source tool specifically targets this
-2. **ML Supply Chain** - Goes beyond file detection to analyze pickle opcodes
-3. **LLM Infrastructure** - Bleeding-edge; most tools don't cover AI attack surface
-4. **Invisible Unicode** - Critical for VS Code extension and npm supply chain defense
-5. **MCP Compatibility** - Future-proofs for AI agent security workflows
-
----
-
-## 📄 License
-
-MIT License - See [LICENSE](LICENSE) for details.
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! Areas of interest:
+Contributions welcome. Areas of interest:
 - Additional framework detection (Remix, Astro, SvelteKit)
 - New ML model format analysis
 - Additional vector database signatures
@@ -379,9 +416,15 @@ Contributions welcome! Areas of interest:
 
 ---
 
+## License
+
+MIT License — see [LICENSE](../LICENSE) for details.
+
+---
+
 <div align="center">
 
-**Built for the security researchers defending against 2025's $10.5 trillion cybercrime economy**
+**Built for security researchers defending AI and developer infrastructure**
 
 [Report Bug](https://github.com/fevra-dev/GitExpose/issues) · [Request Feature](https://github.com/fevra-dev/GitExpose/issues)
 
