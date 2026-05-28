@@ -45,6 +45,15 @@ async def bearer_token_check(
       - "Bearer" → `Authorization: Bearer sk-abc`
       - None     → `x-api-key: sk-ant-xyz`  (no prefix; raw token in header)
     """
+    # Defense-in-depth: the secret is placed verbatim into an HTTP header value,
+    # and httpx does not reject control characters. Today every verifiable
+    # pattern's regex constrains the secret to CRLF-free character classes, so
+    # this is unreachable — but we don't want bearer_token_check to depend on
+    # that caller-side contract. Reject any secret with CR/LF/NUL so a future
+    # looser pattern can't smuggle a split or injected header onto the wire.
+    if any(c in secret for c in ("\r", "\n", "\x00")):
+        return VerificationResult(VerificationStatus.ERROR, "illegal-control-char")
+
     value = f"{scheme} {secret}" if scheme else secret
     headers = {header: value, "User-Agent": "GitExpose-Verify/0.3"}
     try:

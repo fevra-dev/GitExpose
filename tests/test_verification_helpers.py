@@ -124,3 +124,24 @@ async def test_bearer_token_check_with_scheme_prepends_bearer():
     )
     req = route.calls.last.request
     assert req.headers["Authorization"] == "Bearer sk-abc"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_bearer_token_check_rejects_crlf_in_secret():
+    """A crafted secret containing CR/LF must never reach the HTTP header value.
+    httpx does NOT reject control chars in header values, so bearer_token_check
+    has its own guard that returns ERROR for CR/LF/NUL before building the
+    request. The catch-all 200 mock proves the guard short-circuits BEFORE any
+    request is sent — if the guard were removed, this would return VERIFIED and
+    fail, surfacing the header-smuggling gap."""
+    route = respx.route().mock(return_value=httpx.Response(200))
+    result = await bearer_token_check(
+        secret="abc\r\nX-Injected: evil",
+        url="https://api.example.com/v1/me",
+        header="Authorization",
+        scheme="Bearer",
+    )
+    assert result.status == VerificationStatus.ERROR
+    assert result.detail == "illegal-control-char"
+    assert not route.called, "guard must short-circuit before any request is sent"
