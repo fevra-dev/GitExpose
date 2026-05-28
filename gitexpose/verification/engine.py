@@ -27,11 +27,28 @@ _DEFAULT_TIMEOUT = 5.0
 def _secret_value(record: Mapping[str, Any]) -> str:
     """Pull the raw secret string out of a record.
 
-    Records may be:
-      - secret-dicts from SecretExtractor (key: 'value_full')
-      - ScanResult-shaped dicts (we use 'evidence' or similar — caller normalizes)
+    Prefers `_verify_input` (e.g., the AWS "access:secret" pair built by
+    pair_aws_credentials), then falls back to value_full / secret.
     """
-    return record.get("value_full") or record.get("secret") or ""
+    return record.get("_verify_input") or record.get("value_full") or record.get("secret") or ""
+
+
+def pair_aws_credentials(secrets: List[Dict[str, Any]]) -> None:
+    """For each aws_access_key finding, if an aws_secret_key finding shares the
+    same `source`, set `_verify_input` = '<access>:<secret>' so the AWS verifier
+    can confirm liveness. Mutates in place. Unpaired access keys are left as-is
+    (they verify as ERROR 'expected access:secret pair')."""
+    secrets_by_source: Dict[str, str] = {}
+    for f in secrets:
+        if f.get("type") == "aws_secret_key":
+            src = f.get("source") or ""
+            secrets_by_source.setdefault(src, f.get("value_full") or "")
+    for f in secrets:
+        if f.get("type") == "aws_access_key":
+            src = f.get("source") or ""
+            secret_key = secrets_by_source.get(src)
+            if secret_key:
+                f["_verify_input"] = f"{f.get('value_full', '')}:{secret_key}"
 
 
 def _pattern_name(record: Mapping[str, Any]) -> str:
