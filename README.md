@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -24,8 +24,9 @@ GitExpose finds exposed credentials, sensitive AI-infrastructure configs, and su
 |-----------------|-----------------|
 | **Credential exposure** | 29-provider matrix: OpenAI, Anthropic, Google, Groq, xAI, Hugging Face, Replicate, Perplexity, Pinecone, LangSmith, Stripe, GitHub, GitLab, Docker Hub, Discord, Slack, Telegram, Twilio, SendGrid, AWS, ElevenLabs, Helicone, Portkey, Voyage, Cohere, Modal, Runpod, plus DB connection strings |
 | **Active verification** (v0.3) | Opt-in `--verify` confirms whether a detected credential is **live** by sending a side-effect-free auth check to the provider — covers 16 providers (LLM tier + GitHub/GitLab/Docker Hub/Slack/AWS) |
+| **Git history scanning** (v0.4) | `git-history` scans all reachable commits for credentials committed and later removed — still in history, often still live. Each secret reported once at its earliest-introducing commit with SHA/author/date. Composes with `--verify`. |
 | **Exposed AI-tool configs** | `.continue/`, `claude/.credentials.json`, MCP configs, LiteLLM proxy configs, CrewAI/AutoGen YAMLs, .NET appsettings build output |
-| **Supply-chain risk** | Unpinned AI middleware, known-malicious package versions (TeamPCP), slopsquatting, `.pth` persistence, AI agent C2 beacons, k8s exfiltration |
+| **Supply-chain risk** | Unpinned AI middleware, known-malicious package versions (TeamPCP), slopsquatting, `.pth` persistence, AI agent C2 beacons, k8s exfiltration, polyglot files, prompt injection in agent instruction files, malicious agent config payloads |
 | **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS technique on every finding |
 | **HTTP target scanning** | `.git`, `.env`, source maps, framework misconfigs, exposed configs |
 
@@ -78,10 +79,23 @@ References:
 - `.pth` persistence pattern (TeamPCP-class post-compromise indicator)
 - AI-agent C2 beacon detection (MITRE ATLAS AML.TA0015)
 - Kubernetes secret-exfiltration patterns
+- **Polyglot file detection** — text-extension files (`.md`, `.yaml`, `.json`, etc.) whose leading bytes are a binary/executable/archive signature (ELF, PE/MZ, ZIP, PDF, Mach-O, gzip). Built-in magic-byte detection — no external dependency.
+- **Prompt injection in agent instruction files** — hidden directives in `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.continue/`, `.cursor/` (OWASP LLM01)
+- **Malicious agent config payloads** — embedded `curl|bash`, `exec`/`eval` in CrewAI/AutoGen/litellm configs (CRITICAL)
+- **LangChain `lc-` key heuristic** — best-effort detection of LangChain-format credentials, motivated by CVE-2025-68664 (LangGrinch); treat as a high-signal lead requiring confirmation
 
-### Active Verification (`--verify`, v0.3)
+### Git History Scanning (`gitexpose git-history <path>`, v0.4)
+- Scans **all reachable git history** (`git log -p --all --reverse`) for credentials committed and later removed
+- Full 29-provider credential matrix applied to every diff hunk
+- Each secret deduplicated and reported once at its **earliest-introducing commit** with SHA, author, and date
+- **Composes with `--verify`**: historical secrets are liveness-checked — "deleted 47 commits ago, confirmed live"
+- AWS access+secret pairing applies here too, enabling AWS liveness verification on historical findings
+- Flags: `-o/--output {console,json}`, `--out-file`, `--since`, `--max-commits`, plus the full `--verify*` family
+
+### Active Verification (`--verify`, v0.3+)
 - Opt-in liveness check: turns a "looks like a key" finding into a **confirmed live / dead** verdict by sending a low-footprint, side-effect-free auth request to the provider
 - Covers 16 providers: OpenAI, Anthropic, Groq, OpenRouter, xAI, Cerebras, Hugging Face, ElevenLabs, Pinecone, LangSmith, GitHub, GitLab, Docker Hub, Slack, and AWS (SigV4 `GetCallerIdentity`)
+- **AWS pairing (v0.4)**: when both `aws_access_key` and `aws_secret_key` are found in the same source, they are paired automatically so the STS liveness check succeeds. Previously AWS always returned `error`. Applies to both `supply-chain` and `git-history`.
 - Conservative by default: a consent banner names every destination host, concurrency is capped, and no raw secret is ever logged (canary-tested). Results surface as `verified` / `dead` / `error` and as `verified-live` SARIF tags for GitHub Code Scanning
 - Status surfaced across JSON, SARIF, HTML, CSV, and console output
 
@@ -158,6 +172,9 @@ gitexpose supply-chain ./my-project --verify
 
 # Verify only the highest-severity findings, with a tighter timeout
 gitexpose supply-chain ./my-project --verify --verify-only-severity HIGH --verify-timeout 3
+
+# Scan all git history for committed-then-removed secrets, and verify which are still live
+gitexpose git-history . --verify
 ```
 
 ### Output Formats
@@ -263,16 +280,19 @@ gitexpose/
 └── requirements.txt
 ```
 
+> Test suite: ~287 tests as of v0.4.
+
 ---
 
 ## Roadmap (not yet implemented)
 
 The following are designed but not yet shipping. Track via GitHub issues.
 
-- Capability/scope enumeration for verified credentials (AWS IAM perms, GitHub PAT scopes, OpenAI org) — v0.4 headline candidate
-- AI-BOM (SPDX 3.0) inventory output — v0.4 headline candidate
+- AI-BOM (SPDX 3.0) inventory output — v0.5 candidate
+- Policy engine: configurable severity overrides, allow-list patterns, org-wide suppression rules — v0.5 candidate
+- Capability/scope enumeration for verified credentials (AWS IAM perms, GitHub PAT scopes, OpenAI org)
 - Active verification for Tier 3 providers (Helicone, Portkey, Voyage, Cohere, Modal, Runpod — detection-only today) and webhook/DB/JWT classes
-- `--verify` on the web-scan path (currently verification runs on `supply-chain` findings only)
+- `--verify` on the web-scan path (currently verification runs on `supply-chain` and `git-history` findings only)
 - ML-powered anomaly detection engine
 - Runtime monitoring proxy (Pipelock-style)
 - Plugin architecture for custom detection rules
@@ -280,6 +300,8 @@ The following are designed but not yet shipping. Track via GitHub issues.
 - Live external threat-intelligence enrichment
 - Audio steganography detection (Telnyx-class)
 - Browser-agent misuse patterns
+
+**Shipped in v0.4:** `git-history` command (all-reachable-commit secret scanning with `--verify` composition), AI-supply-chain signature pack (`polyglot_file`, `skill_prompt_injection`, `agent_config_malicious_content`, `langgrinch_lc_key`), and AWS access+secret pairing for reliable liveness verification — see the [CHANGELOG](CHANGELOG.md).
 
 **Shipped in v0.3:** active credential verification (`--verify`), Tier 3 provider detection, GitHub Actions + pre-commit + Code Scanning integration docs, and the full MITRE ATLAS coverage map — see the [CHANGELOG](CHANGELOG.md).
 

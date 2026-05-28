@@ -1,6 +1,6 @@
 # GitExpose Detection Coverage
 
-Last updated: v0.2
+Last updated: v0.4
 
 GitExpose detects credential exposure across **23 providers** in 5 categories, plus supply-chain risk indicators specific to AI infrastructure. Each finding carries OWASP LLM Top 10 (`attack_class`) and MITRE ATLAS technique (`atlas_technique`) metadata.
 
@@ -101,6 +101,21 @@ GitExpose detects credential exposure across **23 providers** in 5 categories, p
 | `credential_cluster` | CRITICAL | ≥2 distinct secret types co-occur in same file |
 | `multi_provider_credential_file` | CRITICAL | Cluster appears in known aggregator path (`OAI_CONFIG_LIST`, `litellm_config.yaml`, `.continue/agents/*.yaml`) |
 
+## AI-supply-chain signature pack (v0.4)
+
+Four new working-tree detections added to `supply-chain` scanning:
+
+| Detection | Severity | Description |
+|---|---|---|
+| `polyglot_file` | HIGH | A text-extension file (`.md`, `.yaml`, `.json`, etc.) whose leading bytes match a binary/executable/archive magic signature (ELF, PE/MZ, ZIP, PDF, Mach-O, gzip). Detection uses **built-in magic-byte matching** — no external dependency (python-magic / libmagic not required). |
+| `skill_prompt_injection` | HIGH | Hidden directives found in AI-agent instruction files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, files under `.continue/` or `.cursor/`): "ignore previous instructions", exfiltration directives, or system-prompt-reveal attempts. OWASP LLM01. |
+| `agent_config_malicious_content` | CRITICAL | Embedded command or exfiltration payloads (`curl\|bash`, `exec`/`eval`) inside CrewAI, AutoGen, or litellm config files. |
+| `langgrinch_lc_key` | CRITICAL | Heuristic detection of LangChain `lc-`-prefixed API keys. **Best-effort pattern** — the exact upstream key format is not authoritatively confirmed; pattern is motivated by CVE-2025-68664 (LangGrinch credential-theft chain) and should be treated as a high-signal lead requiring manual confirmation. |
+
+## AWS access+secret pairing (v0.4)
+
+When `supply-chain --verify` (or `git-history --verify`) detects both an `aws_access_key` and an `aws_secret_key` from the same source, GitExpose now pairs them and performs a live `sts:GetCallerIdentity` (SigV4) liveness check. Previously, AWS findings always surfaced as `error` at verification time because the secret component was unavailable. Pairing is applied automatically — no additional flags are required.
+
 ## Empirical AI-tool config paths (v0.2)
 
 GitExpose scans for these paths during URL/HTTP scans (where the path is exposed) and during local filesystem scans:
@@ -116,9 +131,22 @@ GitExpose scans for these paths during URL/HTTP scans (where the path is exposed
 - `**/.env.*.example`, `**/.env.bak`, `**/.env.*.bak`
 - `firebase-config.{js,ts}`
 
+## Git history scanning (v0.4)
+
+`gitexpose git-history <path>` scans **all reachable commits** (`git log -p --all --reverse`) for credentials that were committed and later removed — secrets that no longer appear in the working tree but remain accessible in repository history and may still be live.
+
+Key behaviours:
+
+- **Full credential matrix** — the same 29-provider pattern set used by `supply-chain` applies to every diff hunk.
+- **Deduplicated to earliest introduce** — each distinct secret value is reported once, at the commit that first introduced it, to avoid alert noise from long-lived secrets touched by many commits.
+- **Commit metadata** — every finding carries the introducing commit SHA, author, and date.
+- **Composes with `--verify`** — pass `--verify` (plus the `--verify*` family flags) and historical secrets go through the same liveness-check path as working-tree findings. A typical result: "deleted 47 commits ago, confirmed live."
+- **AWS pairing** — the same access+secret pairing introduced in v0.4 applies here, so AWS keys found in history can also be verified.
+- **Flags**: `-o/--output {console,json}`, `--out-file`, `--since <date>`, `--max-commits <n>`, plus the full `--verify` family (`--verify-only-severity`, `--verify-timeout`, `--verify-concurrency`).
+
 ## Verification status
 
-**Verification status (v0.3):** Tier 1–2 providers (OpenAI, Anthropic, Groq, OpenRouter, Perplexity, xAI, Cerebras, Hugging Face, ElevenLabs, Pinecone, LangSmith, GitHub, GitLab, Docker Hub, Slack token, AWS) support `--verify` for live/dead status. Tier 3 (Helicone, Portkey, Voyage, Cohere, Modal, Runpod) ship as detection-only in v0.3; verification arrives in v0.4 once their endpoint surfaces are documented and audited.
+**Verification status (v0.4):** Tier 1–2 providers (OpenAI, Anthropic, Groq, OpenRouter, Perplexity, xAI, Cerebras, Hugging Face, ElevenLabs, Pinecone, LangSmith, GitHub, GitLab, Docker Hub, Slack token, AWS) support `--verify` for live/dead status. AWS liveness checks now work reliably via access+secret pairing (v0.4). Tier 3 (Helicone, Portkey, Voyage, Cohere, Modal, Runpod) remain detection-only.
 
 ## Compliance taxonomies
 
