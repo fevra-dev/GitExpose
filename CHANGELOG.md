@@ -1,5 +1,75 @@
 # Changelog
 
+## v0.3.0 — 2026-05-28 — Active Verification
+
+### Added
+
+- **Active Verification engine** (opt-in via `--verify`). 16 providers
+  supported: OpenAI (3 variants), Anthropic, Groq, OpenRouter, Perplexity,
+  xAI, Cerebras, Hugging Face, ElevenLabs, Pinecone, LangSmith (v2 + legacy),
+  GitHub, GitLab, Docker Hub, Slack token, AWS (SigV4 `GetCallerIdentity`).
+  Verification adds binary `verified` / `dead` / `error` status to each
+  applicable finding.
+- **`--verify` CLI flags** on the `supply-chain` command: `--verify`,
+  `--verify-concurrency`, `--verify-timeout`, `--verify-only-severity`,
+  `--no-verify-banner`.
+- **Consent banner** printed to stderr when `--verify` is active. Names every
+  destination host.
+- **Verification surfaces in all reporters:** JSON (`verification_status`,
+  `verification_detail`), SARIF (`properties.verification_status` + `tags`),
+  HTML (color badge), CSV (two new columns), console (colored tag).
+- **In-run dedup:** identical secrets in multiple files trigger only one
+  verification call per scan.
+- **Log-redaction safety net:** every verifier and engine path tested with a
+  sentinel canary to guarantee no raw secret leaks to logs, stdout, stderr, or
+  `verification_detail`.
+- **Tier 3 provider patterns:** Helicone, Portkey, Voyage, Cohere, Modal
+  (paired token), Runpod. Detection-only in v0.3; verification deferred to
+  v0.4.
+- **GitHub Actions sample workflow** at `.github/workflows/gitexpose-scan.yml`.
+- **pre-commit hook config** at `.pre-commit-hooks.yaml`.
+- **`docs/INTEGRATIONS_CICD.md`** — pipeline setup walkthrough.
+- **`docs/INTEGRATIONS_CODE_SCANNING.md`** — GitHub Code Scanning setup +
+  SARIF tag filtering.
+- **`docs/MITRE_ATLAS_COVERAGE.md`** — per-detection ATLAS technique mapping.
+- **README "Why this matters" section** linking to the CISA `Private-CISA`
+  incident.
+
+### Changed
+
+- New runtime dependency: `httpx>=0.27.0`.
+- New dev dependency: `respx>=0.21.0` for HTTP mocking in tests.
+- Test count grew from 122 (v0.2.0) to 253 (v0.3.0).
+- Project research notes now tracked under `docs/notes/`.
+- `.gitignore` extended for workspace artifacts (`.serena/`, `RESEARCH/`,
+  `files/`, root PNGs, `uv.lock`, `.venv/`).
+
+### Fixed
+
+- **`gitexpose/advanced/mcp_server.py`** — removed unsupported `validate=`
+  kwarg from `SecretExtractor.extract()` call; fixed `.get("valid")` →
+  `.get("validated")` typo; fixed broken `from .secret_extractor` import path.
+  Regression test added.
+- **`gitexpose/advanced/local_fs_scanner.py`** — `.env` dotfiles were silently
+  skipped (`Path('.env').suffix` is empty); added `.env` to the bare-filename
+  allowlist so supply-chain scans actually read `.env` files.
+- **`github_token` verifier registration** — the scanner emits finding type
+  `github_token` (not `github_pat`); registered the alias so GitHub tokens are
+  actually liveness-checked.
+
+### Deferred to v0.4
+
+- Capability/scope enumeration (AWS IAM perms, GitHub PAT scopes, OpenAI
+  org/project membership)
+- AI-BOM (SPDX 3.0) output format
+- Verifiers for Discord bot/webhook, Telegram, Twilio, SendGrid, Stripe (each
+  needs case-by-case side-effect analysis)
+- Tier 3 provider verification (need documented endpoint surfaces)
+- Persistent cross-run verification cache
+- Deep git-history traversal
+- `--verify` on the web-scan command (cli.py:main produces URL findings, not
+  extractable credentials)
+
 ## v0.2.0 — 2026-05-16 — Real-World Hardening
 
 ### Added
