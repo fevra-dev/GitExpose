@@ -862,6 +862,7 @@ def supply_chain(path: str, output: str, out_file: str, verify: bool,
     if verify:
         import asyncio as _asyncio
         from gitexpose.verification import verify_secrets
+        from gitexpose.verification.engine import pair_aws_credentials
         from gitexpose.verification.banner import print_verify_banner
 
         print_verify_banner(suppress=no_verify_banner)
@@ -874,6 +875,7 @@ def supply_chain(path: str, output: str, out_file: str, verify: bool,
                 f for f in findings
                 if _order.get((f.get("severity") or "INFO").upper(), 0) >= _floor
             ]
+        pair_aws_credentials(to_verify)
         _asyncio.run(verify_secrets(
             to_verify,
             concurrency=verify_concurrency,
@@ -881,6 +883,9 @@ def supply_chain(path: str, output: str, out_file: str, verify: bool,
         ))
         # findings dicts are mutated in-place; findings not in to_verify keep
         # verification_status == "skipped" (set by setdefault above).
+
+    for f in findings:
+        f.pop("_verify_input", None)
 
     if output == "json":
         import json as _json
@@ -967,6 +972,9 @@ def git_history(path, output, out_file, since, max_commits,
                          if order.get((f.get("severity") or "INFO").upper(), 0) >= floor]
         pair_aws_credentials(to_verify)
         _asyncio.run(verify_secrets(to_verify, concurrency=verify_concurrency, timeout=verify_timeout))
+
+    for f in findings:
+        f.pop("_verify_input", None)
 
     if output == "json":
         import json as _json

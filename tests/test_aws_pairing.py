@@ -45,3 +45,19 @@ async def test_verify_uses_paired_input_for_aws():
     await verify_secrets(findings)
     access = next(f for f in findings if f["type"] == "aws_access_key")
     assert access["verification_status"] == VerificationStatus.VERIFIED.value
+
+
+def test_verify_input_is_internal_only():
+    """pair_aws_credentials sets _verify_input; callers must scrub it before
+    emitting findings (it contains the secret)."""
+    findings = [
+        {"type": "aws_access_key", "value_full": "AKIA" + "A" * 16, "source": ".env"},
+        {"type": "aws_secret_key", "value_full": "x" * 40, "source": ".env"},
+    ]
+    pair_aws_credentials(findings)
+    # The key exists internally...
+    assert "_verify_input" in findings[0]
+    # ...and a simple scrub removes it (the pattern the CLI uses)
+    for f in findings:
+        f.pop("_verify_input", None)
+    assert all("_verify_input" not in f for f in findings)

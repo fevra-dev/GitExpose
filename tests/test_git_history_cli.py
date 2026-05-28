@@ -69,3 +69,9 @@ def test_verify_composes(tmp_path):
     findings = json.loads(result.output)
     f = next(f for f in findings if f["type"] == "openai_api_key")
     assert f["verification_status"] in ("dead", "error")
+
+
+def test_json_output_has_no_internal_verify_input(tmp_path):
+    repo = _repo_with_removed_secret(tmp_path)
+    result = CliRunner().invoke(cli, ["git-history", str(repo), "-o", "json"])
+    assert "_verify_input" not in result.output
