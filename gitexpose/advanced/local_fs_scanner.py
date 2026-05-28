@@ -30,7 +30,9 @@ _TEXT_EXTENSIONS = frozenset({
 _SKIP_DIRS = frozenset({".git", "node_modules", "__pycache__", ".venv", "venv"})
 
 # Files matching these names are scanned even if extension isn't in _TEXT_EXTENSIONS.
-_BARE_FILENAMES = frozenset({"OAI_CONFIG_LIST", "Dockerfile"})
+# NOTE: `.env` has an empty Path.suffix (it is a dotfile, not a file.env), so it
+# must be listed here rather than in _TEXT_EXTENSIONS.
+_BARE_FILENAMES = frozenset({"OAI_CONFIG_LIST", "Dockerfile", ".env"})
 
 _DEFAULT_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
 
