@@ -21,6 +21,8 @@ GitExpose detects credential exposure across **23 providers** in 5 categories, p
 | Replicate | `r8_…` | CRITICAL | v0.2 |
 | Perplexity | `pplx-…` | CRITICAL | v0.2 |
 | ElevenLabs | 32-hex (context-bound) | CRITICAL | v0.2 |
+| Voyage AI | `pa-…` | CRITICAL | v0.3 |
+| Cohere | `co-…` | CRITICAL | v0.3 |
 
 ### RAG / Vector DB
 
@@ -33,6 +35,15 @@ GitExpose detects credential exposure across **23 providers** in 5 categories, p
 | Provider | Pattern | Severity | Source |
 |---|---|---|---|
 | LangSmith | `lsv2_pt_…` and `ls__…` | CRITICAL | v0.2 |
+| Helicone | `sk-helicone-…` | HIGH | v0.3 |
+| Portkey | `PORTKEY_API_KEY=…` (context-bound) | HIGH | v0.3 |
+
+### LLM infrastructure
+
+| Provider | Pattern | Severity | Source |
+|---|---|---|---|
+| Modal | `ak-…` (token ID) + `as-…` (token secret) | CRITICAL | v0.3 |
+| Runpod | `RUNPOD_API_KEY=…` (context-bound) | HIGH | v0.3 |
 
 ### Code, cloud, payment
 
@@ -104,6 +115,10 @@ GitExpose scans for these paths during URL/HTTP scans (where the path is exposed
 - `OAI_CONFIG_LIST` (AutoGen)
 - `**/.env.*.example`, `**/.env.bak`, `**/.env.*.bak`
 - `firebase-config.{js,ts}`
+
+## Verification status
+
+**Verification status (v0.3):** Tier 1–2 providers (OpenAI, Anthropic, Groq, OpenRouter, Perplexity, xAI, Cerebras, Hugging Face, ElevenLabs, Pinecone, LangSmith, GitHub, GitLab, Docker Hub, Slack token, AWS) support `--verify` for live/dead status. Tier 3 (Helicone, Portkey, Voyage, Cohere, Modal, Runpod) ship as detection-only in v0.3; verification arrives in v0.4 once their endpoint surfaces are documented and audited.
 
 ## Compliance taxonomies
 
