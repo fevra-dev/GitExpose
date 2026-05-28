@@ -9,11 +9,11 @@ the same as the JSON pattern name in `gitexpose/data/credential_patterns_v02.jso
 from __future__ import annotations
 
 from .llm import LLM_VERIFIERS
+from .code import CODE_VERIFIERS
 
-# Composed registry. Code providers, Docker Hub, Slack, and AWS are added in
-# subsequent tasks. Each registry section is a dict-merge.
 VERIFIERS = {
     **LLM_VERIFIERS,
+    **CODE_VERIFIERS,
 }
 
 __all__ = ["VERIFIERS"]
