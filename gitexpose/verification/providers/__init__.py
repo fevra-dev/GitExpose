@@ -10,12 +10,13 @@ from __future__ import annotations
 
 from .llm import LLM_VERIFIERS
 from .code import CODE_VERIFIERS
-from . import docker
+from . import docker, slack
 
 VERIFIERS = {
     **LLM_VERIFIERS,
     **CODE_VERIFIERS,
     "docker_hub_pat": docker.verify,
+    "slack_token":    slack.verify,
 }
 
 __all__ = ["VERIFIERS"]
