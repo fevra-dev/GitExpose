@@ -422,14 +422,14 @@ class GitExposeMCPServer:
     async def _execute_secret_extraction(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute secret extraction"""
         try:
-            from .secret_extractor import SecretExtractor
+            from ..secrets.secret_extractor import SecretExtractor
 
             content = params["content"]
             validate = params.get("validate", False)
             source = params.get("source", "unknown")
 
-            extractor = SecretExtractor()
-            secrets = await extractor.extract(content, validate=validate)
+            extractor = SecretExtractor(validate=validate)
+            secrets = await extractor.extract(content)
 
             # Mask secrets for safety
             masked_secrets = []
@@ -438,7 +438,7 @@ class GitExposeMCPServer:
                     "type": secret["type"],
                     "value_masked": secret["value"][:8] + "..." + secret["value"][-4:] if len(secret["value"]) > 12 else "***",
                     "line": secret.get("line"),
-                    "valid": secret.get("valid"),
+                    "valid": secret.get("validated"),
                 }
                 masked_secrets.append(masked)
 
