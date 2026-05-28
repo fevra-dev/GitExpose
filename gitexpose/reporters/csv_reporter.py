@@ -30,6 +30,8 @@ class CSVReporter(BaseReporter):
                 "response_length",
                 "attack_class",
                 "atlas_technique",
+                "verification_status",
+                "verification_detail",
             ]
         )
 
@@ -49,6 +51,8 @@ class CSVReporter(BaseReporter):
                         finding.response_length,
                         finding.attack_class or "",
                         finding.atlas_technique or "",
+                        getattr(finding, "verification_status", "skipped"),
+                        getattr(finding, "verification_detail", "") or "",
                     ]
                 )
 

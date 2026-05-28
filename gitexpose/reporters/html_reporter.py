@@ -419,7 +419,22 @@ class HTMLReporter:
             </div>
             """
 
+        # Check if any finding has a non-skipped verification status (for CSS gating)
+        has_verification_badges = any(
+            getattr(item['finding'], 'verification_status', 'skipped') in ('verified', 'dead', 'error')
+            for item in findings
+        )
+        verification_css = ""
+        if has_verification_badges:
+            verification_css = (
+                '.badge-v-verified { background: #cb2431; color: white; padding: 2px 6px; border-radius: 3px; margin-left: 4px; font-size: 11px; font-weight: bold; }\n'
+                '        .badge-v-dead     { background: #6a737d; color: white; padding: 2px 6px; border-radius: 3px; margin-left: 4px; font-size: 11px; }\n'
+                '        .badge-v-error    { background: #f1e05a; color: black; padding: 2px 6px; border-radius: 3px; margin-left: 4px; font-size: 11px; }'
+            )
+
         findings_html = ['<div class="findings-section">', '<h2>Security Findings</h2>']
+        if verification_css:
+            findings_html.insert(0, f'<style>{verification_css}</style>')
 
         for item in findings:
             target = item['target']
@@ -430,6 +445,15 @@ class HTMLReporter:
                 badges += f'<span class="badge badge-owasp">OWASP {finding.attack_class}</span>'
             if finding.atlas_technique:
                 badges += f'<span class="badge badge-atlas">ATLAS {finding.atlas_technique}</span>'
+
+            # Verification badge (only injected when non-skipped)
+            verification_status = getattr(finding, 'verification_status', 'skipped')
+            if verification_status == 'verified':
+                badges += '<span class="badge-verified">LIVE</span>'
+            elif verification_status == 'dead':
+                badges += '<span class="badge-dead">DEAD</span>'
+            elif verification_status == 'error':
+                badges += '<span class="badge-error">?</span>'
 
             findings_html.append(f"""
             <div class="finding {finding.severity.value.lower()}">

@@ -78,6 +78,22 @@ class SARIFReporter(BaseReporter):
             })
         if taxa:
             result["taxa"] = taxa
+
+        # Verification status
+        verification_status = getattr(f, "verification_status", "skipped")
+        properties: Dict[str, Any] = {"verification_status": verification_status}
+        if verification_status == "verified":
+            tag = "verified-live"
+        elif verification_status == "dead":
+            tag = "verified-dead"
+        elif verification_status == "error":
+            tag = "verification-error"
+        else:
+            tag = None
+        if tag:
+            properties["tags"] = [tag]
+        result["properties"] = properties
+
         return result
 
     def _iter_rules(self, report: ScanReport) -> List[Dict[str, Any]]:

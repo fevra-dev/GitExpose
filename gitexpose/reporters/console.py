@@ -120,5 +120,17 @@ class ConsoleReporter(BaseReporter):
                     click.style(f"  Compliance: {compliance_str}", fg="cyan")
                 )
 
+        # Verification tag (only when not skipped)
+        status = getattr(finding, "verification_status", "skipped")
+        if status == "verified":
+            lines.append("  [VERIFIED]")
+        elif status == "dead":
+            lines.append("  [DEAD]")
+        elif status == "error":
+            detail = getattr(finding, "verification_detail", "") or "?"
+            lines.append(f"  [ERROR: {detail}]")
+        elif status == "unverifiable":
+            lines.append("  [UNVERIFIABLE]")
+
         return lines
 
