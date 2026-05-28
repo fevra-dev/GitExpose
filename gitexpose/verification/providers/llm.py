@@ -30,8 +30,11 @@ LLM_VERIFIERS = {
     # OpenRouter — OpenAI-compatible
     "openrouter_api_key":         partial(bearer_token_check, url="https://openrouter.ai/api/v1/auth/key",   header="Authorization", scheme="Bearer"),
 
-    # Perplexity — OpenAI-compatible
-    "perplexity_api_key":         partial(bearer_token_check, url="https://api.perplexity.ai/chat/completions", header="Authorization", scheme="Bearer"),
+    # Perplexity intentionally omitted: no documented GET liveness endpoint.
+    # /chat/completions is POST-only and returns 400 for valid keys, so a live
+    # key cannot be distinguished from a bad one via our status mapping.
+    # perplexity_api_key findings therefore report UNVERIFIABLE (honest) rather
+    # than always-ERROR. Revisit in v0.4 if a no-op endpoint is identified.
 
     # xAI (Grok) — OpenAI-compatible
     "xai_api_key":                partial(bearer_token_check, url="https://api.x.ai/v1/models",              header="Authorization", scheme="Bearer"),

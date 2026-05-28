@@ -36,3 +36,31 @@ def test_supply_chain_without_verify_marks_findings_skipped(tmp_path):
     assert all(s == "skipped" for s in statuses), (
         f"unexpected statuses: {set(statuses)}"
     )
+
+
+def test_supply_chain_console_shows_verification_when_verified(tmp_path, monkeypatch):
+    """With --verify, console output should surface a verification tag.
+    We monkeypatch verify_secrets to mark findings verified without network."""
+    import gitexpose.verification.engine as engine_mod
+
+    target = tmp_path / "creds.env"
+    target.write_text("GROQ_API_KEY=gsk_" + "a" * 52 + "\n")
+
+    async def fake_verify(secrets, **kwargs):
+        for s in secrets:
+            if s.get("type") == "groq_api_key":
+                s["verification_status"] = "verified"
+                s["verification_detail"] = "200"
+        return secrets
+
+    # The command does `from gitexpose.verification import verify_secrets` inside
+    # the function body, which triggers __getattr__ and returns engine.verify_secrets.
+    # Patching the engine module directly ensures the fake is returned by __getattr__.
+    monkeypatch.setattr(engine_mod, "verify_secrets", fake_verify)
+
+    result = CliRunner().invoke(
+        cli,
+        ["supply-chain", str(tmp_path), "--verify", "--no-verify-banner"],
+    )
+    assert result.exit_code in (0, 1)
+    assert "VERIFIED" in result.output

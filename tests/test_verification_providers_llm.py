@@ -15,7 +15,6 @@ LLM_PROVIDERS = [
     ("anthropic_api_key",         "api.anthropic.com",     "x-api-key"),
     ("groq_api_key",              "api.groq.com",          "Authorization"),
     ("openrouter_api_key",        "openrouter.ai",         "Authorization"),
-    ("perplexity_api_key",        "api.perplexity.ai",     "Authorization"),
     ("xai_api_key",               "api.x.ai",              "Authorization"),
     ("cerebras_api_key",          "api.cerebras.ai",       "Authorization"),
     ("huggingface_token",         "huggingface.co",        "Authorization"),

@@ -10,7 +10,7 @@ import sys
 _BANNER = """\
 [verify] Sending candidate credentials to provider APIs for liveness check.
 [verify] Hosts: api.openai.com, api.anthropic.com, api.groq.com, openrouter.ai,
-[verify]        api.perplexity.ai, api.x.ai, api.cerebras.ai, huggingface.co,
+[verify]        api.x.ai, api.cerebras.ai, huggingface.co,
 [verify]        api.elevenlabs.io, api.pinecone.io, api.smith.langchain.com,
 [verify]        api.github.com, gitlab.com, hub.docker.com, slack.com,
 [verify]        sts.amazonaws.com

@@ -894,6 +894,18 @@ def supply_chain(path: str, output: str, out_file: str, verify: bool,
                     if f.get("atlas_technique"):
                         parts.append(f"ATLAS {f['atlas_technique']}")
                     lines.append(f"     📋 {' · '.join(parts)}")
+                if verify:
+                    vstatus = f.get("verification_status", "skipped")
+                    if vstatus == "verified":
+                        lines.append("     ✓ VERIFIED (credential is LIVE)")
+                    elif vstatus == "dead":
+                        lines.append("     ✗ DEAD (credential rejected by provider)")
+                    elif vstatus == "error":
+                        vdetail = f.get("verification_detail") or "?"
+                        lines.append(f"     ? VERIFY ERROR ({vdetail})")
+                    elif vstatus == "unverifiable":
+                        lines.append("     – unverifiable (no verifier for this type)")
+                    # skipped: print nothing
             text = "\n".join(lines)
 
     if out_file:
