@@ -25,6 +25,7 @@ setup(
             "aiofiles>=23.2.0",
             "GitPython>=3.1.40",
             "rich>=13.7.0",
+            "python-magic>=0.4.27",
         ],
         "cloud": [
             "boto3>=1.34.0",
