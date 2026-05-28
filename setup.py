@@ -18,6 +18,7 @@ setup(
         "aiohttp>=3.9.0",
         "click>=8.1.0",
         "colorama>=0.4.6",
+        "httpx>=0.27.0",
     ],
     extras_require={
         "advanced": [
@@ -44,6 +45,7 @@ setup(
             "black>=23.0.0",
             "flake8>=6.0.0",
             "mypy>=1.0.0",
+            "respx>=0.21.0",
         ],
     },
     entry_points={

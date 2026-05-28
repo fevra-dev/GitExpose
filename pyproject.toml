@@ -41,9 +41,11 @@ classifiers = [
     "Topic :: System :: Networking :: Monitoring",
 ]
 dependencies = [
+    "aiofiles>=25.1.0",
     "aiohttp>=3.9.0",
     "click>=8.1.0",
     "colorama>=0.4.6",
+    "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]
@@ -72,6 +74,7 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0",
     "ruff>=0.1.0",
+    "respx>=0.21.0",
 ]
 
 [project.scripts]
