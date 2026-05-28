@@ -927,6 +927,82 @@ def supply_chain(path: str, output: str, out_file: str, verify: bool,
     sys.exit(1 if findings else 0)
 
 
+@cli.command("git-history")
+@click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.option("-o", "--output", type=click.Choice(["console", "json"]), default="console")
+@click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
+@click.option("--since", default=None, help="Only commits after DATE (passthrough to git log).")
+@click.option("--max-commits", type=int, default=None, metavar="N",
+              help="Cap the number of commits scanned.")
+@add_verify_args
+def git_history(path, output, out_file, since, max_commits,
+                verify, verify_concurrency, verify_timeout, verify_only_severity, no_verify_banner):
+    """Scan all git history for credentials committed and later removed."""
+    from pathlib import Path as _Path
+    from .git_history import scan_history
+
+    try:
+        findings = scan_history(_Path(path), since=since, max_commits=max_commits)
+    except ValueError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(2)
+
+    for f in findings:
+        f.setdefault("verification_status", "skipped")
+        f.setdefault("verification_detail", None)
+
+    if verify:
+        import asyncio as _asyncio
+        from .verification import verify_secrets
+        from .verification.engine import pair_aws_credentials
+        from .verification.banner import print_verify_banner
+
+        print_verify_banner(suppress=no_verify_banner)
+
+        to_verify = findings
+        if verify_only_severity:
+            order = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
+            floor = order[verify_only_severity]
+            to_verify = [f for f in findings
+                         if order.get((f.get("severity") or "INFO").upper(), 0) >= floor]
+        pair_aws_credentials(to_verify)
+        _asyncio.run(verify_secrets(to_verify, concurrency=verify_concurrency, timeout=verify_timeout))
+
+    if output == "json":
+        import json as _json
+        text = _json.dumps(findings, indent=2, default=str)
+    else:
+        if not findings:
+            text = f"✅ No historical secrets found in {path}"
+        else:
+            lines = [f"🔍 {len(findings)} historical secret(s) in {path} (across all branches):"]
+            for f in findings:
+                sev = f.get("severity") or "UNKNOWN"
+                lines.append(
+                    f"  [{sev}] {f.get('type')}   "
+                    f"({f.get('source')} @ {f.get('commit_short')}, {f.get('author')}, "
+                    f"{(f.get('commit_date') or '')[:10]})"
+                )
+                if verify:
+                    vstatus = f.get("verification_status", "skipped")
+                    if vstatus == "verified":
+                        lines.append("     ✓ VERIFIED (credential is LIVE)")
+                    elif vstatus == "dead":
+                        lines.append("     ✗ DEAD (credential rejected by provider)")
+                    elif vstatus == "error":
+                        lines.append(f"     ? VERIFY ERROR ({f.get('verification_detail') or '?'})")
+                    elif vstatus == "unverifiable":
+                        lines.append("     – unverifiable (no verifier for this type)")
+            text = "\n".join(lines)
+
+    if out_file:
+        _Path(out_file).write_text(text)
+    else:
+        click.echo(text)
+
+    sys.exit(1 if findings else 0)
+
+
 def main():
     """Main entry point"""
     cli()
