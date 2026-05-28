@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -22,7 +22,8 @@ GitExpose finds exposed credentials, sensitive AI-infrastructure configs, and su
 
 | Threat Category | What's Detected |
 |-----------------|-----------------|
-| **Credential exposure** | 23-provider matrix: OpenAI, Anthropic, Google, Groq, xAI, Hugging Face, Replicate, Perplexity, Pinecone, LangSmith, Stripe, GitHub, GitLab, Docker Hub, Discord, Slack, Telegram, Twilio, SendGrid, AWS, ElevenLabs, plus DB connection strings |
+| **Credential exposure** | 29-provider matrix: OpenAI, Anthropic, Google, Groq, xAI, Hugging Face, Replicate, Perplexity, Pinecone, LangSmith, Stripe, GitHub, GitLab, Docker Hub, Discord, Slack, Telegram, Twilio, SendGrid, AWS, ElevenLabs, Helicone, Portkey, Voyage, Cohere, Modal, Runpod, plus DB connection strings |
+| **Active verification** (v0.3) | Opt-in `--verify` confirms whether a detected credential is **live** by sending a side-effect-free auth check to the provider — covers 16 providers (LLM tier + GitHub/GitLab/Docker Hub/Slack/AWS) |
 | **Exposed AI-tool configs** | `.continue/`, `claude/.credentials.json`, MCP configs, LiteLLM proxy configs, CrewAI/AutoGen YAMLs, .NET appsettings build output |
 | **Supply-chain risk** | Unpinned AI middleware, known-malicious package versions (TeamPCP), slopsquatting, `.pth` persistence, AI agent C2 beacons, k8s exfiltration |
 | **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS technique on every finding |
@@ -77,6 +78,12 @@ References:
 - `.pth` persistence pattern (TeamPCP-class post-compromise indicator)
 - AI-agent C2 beacon detection (MITRE ATLAS AML.TA0015)
 - Kubernetes secret-exfiltration patterns
+
+### Active Verification (`--verify`, v0.3)
+- Opt-in liveness check: turns a "looks like a key" finding into a **confirmed live / dead** verdict by sending a low-footprint, side-effect-free auth request to the provider
+- Covers 16 providers: OpenAI, Anthropic, Groq, OpenRouter, xAI, Cerebras, Hugging Face, ElevenLabs, Pinecone, LangSmith, GitHub, GitLab, Docker Hub, Slack, and AWS (SigV4 `GetCallerIdentity`)
+- Conservative by default: a consent banner names every destination host, concurrency is capped, and no raw secret is ever logged (canary-tested). Results surface as `verified` / `dead` / `error` and as `verified-live` SARIF tags for GitHub Code Scanning
+- Status surfaced across JSON, SARIF, HTML, CSV, and console output
 
 ### Advanced Modules (in `gitexpose/advanced/`)
 - React2Shell detector (CVE-2025-55182)
@@ -144,6 +151,13 @@ gitexpose unicode-scan --file suspicious.js
 
 # Local supply-chain scan
 gitexpose supply-chain ./my-project
+
+# Supply-chain scan with active credential verification (opt-in)
+# Sends a side-effect-free auth check to each provider; prints a consent banner.
+gitexpose supply-chain ./my-project --verify
+
+# Verify only the highest-severity findings, with a tighter timeout
+gitexpose supply-chain ./my-project --verify --verify-only-severity HIGH --verify-timeout 3
 ```
 
 ### Output Formats
@@ -245,7 +259,7 @@ gitexpose/
 │   └── reporters/           # Output formatters (console, JSON, CSV, HTML, SARIF)
 │
 ├── docs/                    # Documentation
-├── tests/                   # Test suite (122 tests)
+├── tests/                   # Test suite (251 tests)
 └── requirements.txt
 ```
 
@@ -253,18 +267,32 @@ gitexpose/
 
 ## Roadmap (not yet implemented)
 
-The following are designed but not shipping in v0.2. Track via GitHub issues.
+The following are designed but not yet shipping. Track via GitHub issues.
 
+- Capability/scope enumeration for verified credentials (AWS IAM perms, GitHub PAT scopes, OpenAI org) — v0.4 headline candidate
+- AI-BOM (SPDX 3.0) inventory output — v0.4 headline candidate
+- Active verification for Tier 3 providers (Helicone, Portkey, Voyage, Cohere, Modal, Runpod — detection-only today) and webhook/DB/JWT classes
+- `--verify` on the web-scan path (currently verification runs on `supply-chain` findings only)
 - ML-powered anomaly detection engine
 - Runtime monitoring proxy (Pipelock-style)
 - Plugin architecture for custom detection rules
 - Web dashboard / REST API
-- Package pre-installation verification CLI
-- IDE plugins (VS Code, JetBrains)
 - Live external threat-intelligence enrichment
-- Full MITRE ATLAS coverage map document (metadata ships in v0.2; full coverage doc is v0.3)
 - Audio steganography detection (Telnyx-class)
 - Browser-agent misuse patterns
+
+**Shipped in v0.3:** active credential verification (`--verify`), Tier 3 provider detection, GitHub Actions + pre-commit + Code Scanning integration docs, and the full MITRE ATLAS coverage map — see the [CHANGELOG](CHANGELOG.md).
+
+---
+
+## Documentation
+
+- [docs/COVERAGE.md](docs/COVERAGE.md) — full provider + supply-chain detection matrix
+- [docs/MITRE_ATLAS_COVERAGE.md](docs/MITRE_ATLAS_COVERAGE.md) — per-detection MITRE ATLAS technique mapping
+- [docs/INTEGRATIONS_CICD.md](docs/INTEGRATIONS_CICD.md) — GitHub Actions + pre-commit setup
+- [docs/INTEGRATIONS_CODE_SCANNING.md](docs/INTEGRATIONS_CODE_SCANNING.md) — GitHub Code Scanning (SARIF) setup + `verified-live` tag filtering
+- [docs/README_ADVANCED.md](docs/README_ADVANCED.md) — advanced module reference
+- [CHANGELOG.md](CHANGELOG.md) — release history
 
 ---
 
