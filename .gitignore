@@ -80,6 +80,10 @@ venv.bak/
 !tests/fixtures/*.json
 !tests/fixtures/synthetic_repo/**/*.json
 !tests/fixtures/synthetic_repo/.continue/
+# v0.3 smoke fixture: the generic `.env` rule (above) would drop this tracked
+# test fixture, which is exactly the bug that left test_smoke_v03 red on clean
+# checkouts. Negate it so the fixture stays in version control.
+!tests/fixtures/synthetic_repo_v03/.env
 
 # Git dumps
 git-dumps/
