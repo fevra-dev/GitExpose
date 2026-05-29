@@ -14,11 +14,20 @@ def test_status_enum_values():
 
 
 def test_status_is_string_enum():
-    """Each enum value should serialize as its string in JSON contexts."""
-    assert VerificationStatus.VERIFIED == "verified"
-    assert f"{VerificationStatus.DEAD}" == "VerificationStatus.DEAD"
-    # Critical: when cast to str via .value, gives the raw string
-    assert VerificationStatus.VERIFIED.value == "verified"
+    """Each enum value must serialize as its raw string in JSON contexts.
+
+    This is the actual product contract (reporters emit `verification_status`
+    into JSON/SARIF). We assert str-equality and JSON serialization, NOT
+    ``str()``/``f"{...}"`` — the ``(str, Enum)`` ``__str__``/``__format__``
+    output changed across Python 3.10/3.11/3.12 and is not what the product uses.
+    """
+    import json
+
+    assert VerificationStatus.VERIFIED == "verified"        # str-enum identity
+    assert VerificationStatus.DEAD.value == "dead"
+    # What reporters actually rely on: a str-enum serializes to its raw value.
+    assert json.dumps(VerificationStatus.DEAD) == '"dead"'
+    assert json.dumps({"s": VerificationStatus.ERROR}) == '{"s": "error"}'
 
 
 def test_verification_result_holds_status_and_detail():
