@@ -27,16 +27,16 @@ def test_smoke_v05_sca_and_bom():
                    "aliases": ["CVE-2018-18074"], "database_specific": {"severity": "HIGH"},
                    "affected": [{"ranges": [{"type": "ECOSYSTEM",
                                 "events": [{"introduced": "0"}, {"fixed": "2.20.0"}]}]}]}))
-    runner = CliRunner(mix_stderr=False)
+    runner = CliRunner()
 
     # JSON path → vulnerable_dependency present
-    res_json = runner.invoke(cli, ["supply-chain", str(FIX), "-o", "json"])
+    res_json = runner.invoke(cli, ["supply-chain", str(FIX), "-o", "json", "--no-verify-banner"])
     findings = json.loads(res_json.output)
     assert any(f["type"] == "vulnerable_dependency" and f["package"] == "requests"
                for f in findings)
 
     # BOM path → valid CycloneDX with the component + VEX
-    res_bom = runner.invoke(cli, ["supply-chain", str(FIX), "-o", "cyclonedx"])
+    res_bom = runner.invoke(cli, ["supply-chain", str(FIX), "-o", "cyclonedx", "--no-verify-banner"])
     doc = json.loads(res_bom.output)
     assert doc["specVersion"] == "1.6"
     assert any(c["name"] == "requests" for c in doc["components"])
@@ -45,7 +45,7 @@ def test_smoke_v05_sca_and_bom():
 @respx.mock
 def test_smoke_v05_offline_no_network():
     route = respx.post(QUERYBATCH)
-    runner = CliRunner(mix_stderr=False)
+    runner = CliRunner()
     res = runner.invoke(cli, ["supply-chain", str(FIX), "--offline", "-o", "json"])
     assert not route.called
     assert res.exit_code in (0, 1)

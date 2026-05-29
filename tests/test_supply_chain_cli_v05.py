@@ -38,7 +38,7 @@ def _mock_osv():
 def test_offline_skips_osv(tmp_path):
     _write_repo(tmp_path)
     route = respx.post(QUERYBATCH)
-    runner = CliRunner(mix_stderr=False)
+    runner = CliRunner()
     result = runner.invoke(cli, ["supply-chain", str(tmp_path), "--offline", "-o", "json"])
     assert not route.called   # --offline made no network call
     # exit 0/1 both fine depending on other findings; just assert it ran
@@ -49,8 +49,10 @@ def test_offline_skips_osv(tmp_path):
 def test_osv_default_on_emits_vulnerable_dependency(tmp_path):
     _write_repo(tmp_path)
     _mock_osv()
-    runner = CliRunner(mix_stderr=False)
-    result = runner.invoke(cli, ["supply-chain", str(tmp_path), "-o", "json"])
+    runner = CliRunner()
+    # --no-verify-banner suppresses the stderr OSV egress notice so parsed stdout
+    # stays clean across click versions (click>=8.2 dropped CliRunner(mix_stderr=)).
+    result = runner.invoke(cli, ["supply-chain", str(tmp_path), "-o", "json", "--no-verify-banner"])
     findings = json.loads(result.output)
     vuln = [f for f in findings if f["type"] == "vulnerable_dependency"]
     assert vuln and vuln[0]["vuln_id"] == "GHSA-xxxx"
@@ -61,8 +63,8 @@ def test_osv_default_on_emits_vulnerable_dependency(tmp_path):
 def test_cyclonedx_output(tmp_path):
     _write_repo(tmp_path)
     _mock_osv()
-    runner = CliRunner(mix_stderr=False)
-    result = runner.invoke(cli, ["supply-chain", str(tmp_path), "-o", "cyclonedx"])
+    runner = CliRunner()
+    result = runner.invoke(cli, ["supply-chain", str(tmp_path), "-o", "cyclonedx", "--no-verify-banner"])
     doc = json.loads(result.output)
     assert doc["bomFormat"] == "CycloneDX"
     assert any(c["name"] == "lodash" for c in doc["components"])
@@ -73,8 +75,8 @@ def test_cyclonedx_output(tmp_path):
 def test_console_renders_vulnerable_dependency(tmp_path):
     _write_repo(tmp_path)
     _mock_osv()
-    runner = CliRunner(mix_stderr=False)
-    result = runner.invoke(cli, ["supply-chain", str(tmp_path), "-o", "console"])
+    runner = CliRunner()
+    result = runner.invoke(cli, ["supply-chain", str(tmp_path), "-o", "console", "--no-verify-banner"])
     assert "vulnerable_dependency" in result.output or "GHSA-xxxx" in result.output
     assert "lodash" in result.output
     assert "4.17.21" in result.output   # fixed version surfaced
