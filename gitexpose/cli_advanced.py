@@ -841,17 +841,60 @@ def add_verify_args(func):
 
 @cli.command("supply-chain")
 @click.argument("path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
-@click.option("-o", "--output", type=click.Choice(["console", "json"]), default="console")
+@click.option("-o", "--output", type=click.Choice(["console", "json", "cyclonedx", "aibom"]),
+              default="console")
 @click.option("--out-file", type=click.Path(), help="Write output to file instead of stdout")
+@click.option("--offline", is_flag=True, default=False,
+              help="Skip OSV.dev network lookups; use the curated known-bad list only.")
+@click.option("--osv-timeout", type=float, default=10.0, metavar="SECS",
+              help="Per-request OSV.dev timeout (default 10s).")
+@click.option("--osv-max", type=int, default=5000, metavar="N",
+              help="Cap dependencies queried against OSV.dev (default 5000).")
 @add_verify_args
-def supply_chain(path: str, output: str, out_file: str, verify: bool,
+def supply_chain(path: str, output: str, out_file: str, offline: bool,
+                 osv_timeout: float, osv_max: int, verify: bool,
                  verify_concurrency: int, verify_timeout: float,
                  verify_only_severity: str, no_verify_banner: bool):
-    """Scan a local directory for supply-chain risks (TeamPCP-class)."""
+    """Scan a local directory for supply-chain risks (TeamPCP-class) + live SCA."""
     from .advanced.local_fs_scanner import LocalFilesystemScanner
 
     scanner = LocalFilesystemScanner()
     findings = scanner.scan(Path(path))
+
+    # --- v0.5: lock-file SCA + OSV.dev live vulnerability intelligence ---
+    import asyncio as _asyncio
+    from .supply_chain.lockfiles import parse_all
+    from .supply_chain.osv import query_osv
+    from .supply_chain.correlate import build_vuln_findings, exploitability_sort_key
+
+    _v05_deps = parse_all(Path(path))
+
+    # Credential co-presence: which source files already produced a credential finding?
+    cred_sources = {
+        f.get("source") for f in findings
+        if f.get("value_full") or f.get("secret") or (f.get("type") or "").endswith("_key")
+    }
+    # Unpinned packages flagged by the existing dependency_pinning scanner.
+    unpinned_packages = {
+        (f.get("package") or "").lower().replace("_", "-")
+        for f in findings if f.get("type") == "unpinned_ai_middleware"
+    }
+
+    osv_map = {}
+    if not offline and _v05_deps:
+        if not no_verify_banner:
+            click.echo(
+                f"ℹ  Querying OSV.dev for {min(len(_v05_deps), osv_max)} dependencies "
+                "(package names + versions only; use --offline to disable).",
+                err=True,
+            )
+        osv_map = _asyncio.run(query_osv(_v05_deps, timeout=osv_timeout, max_deps=osv_max))
+
+    vuln_findings = build_vuln_findings(
+        osv_map, _v05_deps, unpinned_packages=unpinned_packages, cred_sources=cred_sources
+    )
+    vuln_findings.sort(key=exploitability_sort_key, reverse=True)
+    findings = findings + vuln_findings
 
     # Ensure every finding dict carries verification_status (non-credential scanners
     # such as dependency_pinning do not set this key; treat absent as "skipped").
@@ -867,12 +910,14 @@ def supply_chain(path: str, output: str, out_file: str, verify: bool,
 
         print_verify_banner(suppress=no_verify_banner)
 
-        to_verify = findings
+        # Only credential-style findings are verifiable; vulnerable_dependency
+        # findings are not credentials, so exclude them (they keep "skipped").
+        to_verify = [f for f in findings if f.get("type") != "vulnerable_dependency"]
         if verify_only_severity:
             _order = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
             _floor = _order[verify_only_severity]
             to_verify = [
-                f for f in findings
+                f for f in to_verify
                 if _order.get((f.get("severity") or "INFO").upper(), 0) >= _floor
             ]
         pair_aws_credentials(to_verify)
@@ -884,10 +929,23 @@ def supply_chain(path: str, output: str, out_file: str, verify: bool,
         # findings dicts are mutated in-place; findings not in to_verify keep
         # verification_status == "skipped" (set by setdefault above).
 
+        # Honest VEX (spec §6): a vulnerable dependency is "exploitable" only when a
+        # credential in the SAME source file was confirmed live. Mark that now that
+        # verification has run.
+        verified_sources = {
+            f.get("source") for f in findings
+            if f.get("verification_status") == "verified"
+        }
+        for f in vuln_findings:
+            f["cred_verified_co_present"] = f.get("source") in verified_sources
+
     for f in findings:
         f.pop("_verify_input", None)
 
-    if output == "json":
+    if output in ("cyclonedx", "aibom"):
+        from .reporters.cyclonedx_reporter import build_bom
+        text = build_bom(_v05_deps, findings)
+    elif output == "json":
         import json as _json
         text = _json.dumps(findings, indent=2, default=str)
     else:

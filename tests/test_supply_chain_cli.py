@@ -17,7 +17,8 @@ def test_supply_chain_command_registered():
 def test_supply_chain_runs_against_dir(tmp_path: Path):
     (tmp_path / "requirements.txt").write_text("litellm==1.82.7\n")
     runner = CliRunner()
-    result = runner.invoke(cli, ["supply-chain", str(tmp_path)])
+    # --offline: this test exercises the curated known-bad list, not live OSV.
+    result = runner.invoke(cli, ["supply-chain", str(tmp_path), "--offline"])
     assert result.exit_code == 1, f"expected findings (exit 1), got {result.exit_code}: {result.output}"
     assert "litellm" in result.output
     assert "known_malicious_package_version" in result.output
@@ -53,7 +54,9 @@ def test_supply_chain_handles_synthetic_repo_e2e():
     This is the manual-verification-equivalent test."""
     fixture = Path(__file__).parent / "fixtures" / "synthetic_repo"
     runner = CliRunner()
-    result = runner.invoke(cli, ["supply-chain", str(fixture)])
+    # --offline: the synthetic_repo has pinned deps; this regression test is about
+    # curated/credential rendering, not live OSV lookups.
+    result = runner.invoke(cli, ["supply-chain", str(fixture), "--offline"])
     # Must not crash — a real crash raises a non-SystemExit exception
     assert not result.exception or isinstance(result.exception, SystemExit), (
         f"Crashed: {result.exception}"

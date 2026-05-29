@@ -38,12 +38,28 @@ def test_build_bom_is_valid_cyclonedx_json():
 
 def test_vex_state_exploitable_only_on_verified_cred_copresence():
     deps = [_dep()]
+    # cred_verified_co_present is the CLI's post-verify signal: a live credential
+    # shares this dependency's source file. That is the only thing (besides a KEV
+    # flag) that lets VEX claim "exploitable".
     findings = [{
         "type": "vulnerable_dependency", "package": "lodash", "version": "4.17.20",
         "purl": "pkg:npm/lodash@4.17.20", "vuln_id": "GHSA-xxxx", "severity": "HIGH",
         "summary": "x", "advisory_url": "https://osv.dev/vulnerability/GHSA-xxxx",
         "cred_co_present": True, "direct": True, "pinned": False, "known_exploited": False,
-        "verification_status": "verified",
+        "cred_verified_co_present": True,
     }]
     doc = json.loads(build_bom(deps, findings))
     assert doc["vulnerabilities"][0]["analysis"]["state"] == "exploitable"
+
+
+def test_vex_state_in_triage_without_verified_cred():
+    deps = [_dep()]
+    # cred co-present but NOT verified live → still only a hypothesis → in_triage.
+    findings = [{
+        "type": "vulnerable_dependency", "package": "lodash", "version": "4.17.20",
+        "purl": "pkg:npm/lodash@4.17.20", "vuln_id": "GHSA-xxxx", "severity": "HIGH",
+        "summary": "x", "advisory_url": "https://osv.dev/vulnerability/GHSA-xxxx",
+        "cred_co_present": True, "direct": True, "pinned": False, "known_exploited": False,
+    }]
+    doc = json.loads(build_bom(deps, findings))
+    assert doc["vulnerabilities"][0]["analysis"]["state"] == "in_triage"

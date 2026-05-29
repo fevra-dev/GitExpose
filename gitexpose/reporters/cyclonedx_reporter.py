@@ -33,9 +33,14 @@ _TOOL_VERSION = "0.5.0"
 
 
 def _vex_state(finding: Dict) -> ImpactAnalysisState:
-    """Honest VEX state: exploitable only when proven, else in_triage."""
-    verified_cred = finding.get("cred_co_present") and finding.get("verification_status") == "verified"
-    if verified_cred or finding.get("known_exploited"):
+    """Honest VEX state (spec §6): exploitable only when proven, else in_triage.
+
+    `cred_verified_co_present` is set by the CLI after `--verify` runs: it means a
+    credential in the SAME source file as this vulnerable dependency was confirmed
+    live. `known_exploited` is OSV's CISA-KEV-style flag. We never assert
+    not_affected (that needs reachability analysis we do not perform).
+    """
+    if finding.get("cred_verified_co_present") or finding.get("known_exploited"):
         return ImpactAnalysisState.EXPLOITABLE
     return ImpactAnalysisState.IN_TRIAGE
 
