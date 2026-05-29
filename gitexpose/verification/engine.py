@@ -76,7 +76,40 @@ async def verify_secrets(
     single call are verified once (in-run dedup).
     """
     sem = asyncio.Semaphore(concurrency)
-    seen: Dict[str, VerificationResult] = {}
+    results: Dict[str, VerificationResult] = {}   # secret -> completed result
+    events: Dict[str, asyncio.Event] = {}         # secret -> in-flight signal
+
+    async def _resolve(
+        secret: str,
+        verifier: Callable[[str], Awaitable[VerificationResult]],
+    ) -> VerificationResult:
+        """Verify `secret` at most once per run, even under concurrency.
+
+        The check-then-register below contains no `await`, so under asyncio's
+        cooperative scheduling it is atomic: exactly one coroutine becomes the
+        computer for a given secret; the rest await its Event. This prevents the
+        request amplification where K identical findings would each fire an
+        outbound auth request to the provider.
+        """
+        if secret in results:
+            return results[secret]
+        ev = events.get(secret)
+        if ev is not None:                # another coroutine is computing it
+            await ev.wait()
+            return results[secret]
+        ev = events[secret] = asyncio.Event()   # we are the computer (no await above)
+
+        async with sem:
+            try:
+                result = await asyncio.wait_for(verifier(secret), timeout=timeout)
+            except asyncio.TimeoutError:
+                result = VerificationResult(VerificationStatus.ERROR, "timeout")
+            except Exception as exc:  # noqa: BLE001 — capture provider failures
+                logger.debug("Verifier raised: %s", type(exc).__name__)
+                result = VerificationResult(VerificationStatus.ERROR, type(exc).__name__)
+        results[secret] = result
+        ev.set()                          # release any waiters
+        return result
 
     async def _one(record: Dict[str, Any]) -> None:
         pattern = _pattern_name(record)
@@ -88,19 +121,7 @@ async def verify_secrets(
             record["verification_detail"] = None
             return
 
-        if secret in seen:
-            result = seen[secret]
-        else:
-            async with sem:
-                try:
-                    result = await asyncio.wait_for(verifier(secret), timeout=timeout)
-                except asyncio.TimeoutError:
-                    result = VerificationResult(VerificationStatus.ERROR, "timeout")
-                except Exception as exc:  # noqa: BLE001 — capture provider failures
-                    logger.debug("Verifier raised for %s: %s", pattern, type(exc).__name__)
-                    result = VerificationResult(VerificationStatus.ERROR, type(exc).__name__)
-            seen[secret] = result
-
+        result = await _resolve(secret, verifier)
         record["verification_status"] = result.status.value
         record["verification_detail"] = result.detail
 

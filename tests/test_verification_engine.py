@@ -43,6 +43,11 @@ async def test_dedups_same_secret_within_run(monkeypatch):
     async def counting_verifier(secret):
         nonlocal call_count
         call_count += 1
+        # Yield control so all gathered coroutines interleave at this await —
+        # this deterministically exposes a check-then-act race in the dedup
+        # (identical secrets must collapse to a single verifier call, not one
+        # call per finding — a request-amplification concern against providers).
+        await asyncio.sleep(0)
         return VerificationResult(VerificationStatus.VERIFIED, "200")
 
     monkeypatch.setattr(
