@@ -84,6 +84,10 @@ venv.bak/
 # test fixture, which is exactly the bug that left test_smoke_v03 red on clean
 # checkouts. Negate it so the fixture stays in version control.
 !tests/fixtures/synthetic_repo_v03/.env
+# v0.5 lock-file fixtures: `package-lock.json` etc. are dropped by JS-tooling
+# gitignore rules; negate the SCA fixture dir so parser tests pass on clean checkouts.
+!tests/fixtures/lockfiles/
+!tests/fixtures/lockfiles/**
 
 # Git dumps
 git-dumps/
