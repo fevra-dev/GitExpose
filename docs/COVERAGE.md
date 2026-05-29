@@ -116,6 +116,21 @@ Four new working-tree detections added to `supply-chain` scanning:
 
 When `supply-chain --verify` (or `git-history --verify`) detects both an `aws_access_key` and an `aws_secret_key` from the same source, GitExpose now pairs them and performs a live `sts:GetCallerIdentity` (SigV4) liveness check. Previously, AWS findings always surfaced as `error` at verification time because the secret component was unavailable. Pairing is applied automatically — no additional flags are required.
 
+## Live dependency SCA (v0.5)
+
+`supply-chain` parses lock files and queries OSV.dev for live vulnerability intelligence (default on; `--offline` falls back to the curated list).
+
+| Lock-file format | Ecosystem |
+|---|---|
+| `requirements.txt` (== pins), `poetry.lock`, `Pipfile.lock` | PyPI |
+| `package-lock.json` (v2/v3), `yarn.lock` (v1 + Berry) | npm |
+
+| Finding type | Severity | Description |
+|---|---|---|
+| `vulnerable_dependency` | CVSS-mapped (CRITICAL/HIGH/MEDIUM/LOW) | A resolved dependency matched a live OSV CVE/GHSA/MAL advisory. Carries `vuln_id`, `fixed_version`, `direct`, `pinned`, `cred_co_present`, `known_exploited`. Mapped to **OWASP A06:2021 (Vulnerable & Outdated Components) / CICD-SEC-3**; AI middleware additionally keeps `AML.T0019`. |
+
+Findings are ranked by **exploitability context** (credential-co-presence → known-exploited → direct → unpinned → fix-available → severity → CVSS), not raw CVSS. The CycloneDX 1.6 AI-BOM (`-o cyclonedx`) carries these as VEX entries; `analysis.state` is `exploitable` only when a co-present credential is `--verify`-confirmed live or OSV flags it known-exploited, else `in_triage`.
+
 ## Empirical AI-tool config paths (v0.2)
 
 GitExpose scans for these paths during URL/HTTP scans (where the path is exposed) and during local filesystem scans:

@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.5.0 — 2026-05-28 — Supply-Chain Intelligence
+
+### Added
+- **Live dependency SCA** — lock-file parsing for Python (`requirements.txt`, `poetry.lock`, `Pipfile.lock`) and JavaScript (`package-lock.json`, `yarn.lock` v1 + Berry), enriched via OSV.dev live CVE/GHSA/malicious-package advisories. New `vulnerable_dependency` finding type (OWASP A06:2021 / CICD-SEC-3; AI middleware also keeps its ATLAS tag).
+- **OSV.dev integration** (`gitexpose/supply_chain/osv.py`) — default on; sends only package **names + versions** (no secrets) to Google's OSV API via the batch endpoint (≤1000/request → bounded fan-out). `--offline` opt-out falls back to the curated known-bad list; any network failure degrades gracefully to that list rather than failing the scan. New flags: `--offline`, `--osv-timeout`, `--osv-max`.
+- **CycloneDX 1.6 AI-BOM** (`-o cyclonedx`, alias `aibom`) — built with `cyclonedx-python-lib`; emits components (with PURLs + lock-file integrity hashes), dependency-vulnerability VEX, and NTIA minimum elements.
+- **Exploitability-first ranking** — `vulnerable_dependency` findings are ordered by exploitability *context* (direct/transitive, fix-available, pinned, credential-co-presence) with CVSS only as a tiebreaker, per the "rank by proven-exploitable, not CVSS" discipline.
+- **Honest VEX** — the BOM marks a vulnerability `exploitable` only when proven: a credential in the same source file was `--verify`-confirmed live, or OSV flags it known-exploited. Otherwise `in_triage`. We never assert `not_affected` (no reachability analysis). Self-contained CVSS v3.1 base-score computation (no external CVSS dependency).
+
+### Changed
+- New core dependencies: `cyclonedx-python-lib>=8.0.0` and `packageurl-python>=0.15.0` (both pure-Python); `tomli>=2.0.0` only on Python 3.9/3.10 (`tomllib` is stdlib on 3.11+).
+- Test count grew from 287 (v0.4.0) to 325 (v0.5.0).
+- Existing supply-chain regression tests now pass `--offline` so the suite makes no live network calls.
+
+### Deferred to v0.6
+- Classic typosquatting; lock-file poisoning checks (SRI/ghost-deps/off-registry URLs — data already captured); Shai-Hulud install-time behavioral analysis; Go/Cargo ecosystems.
+
 ## v0.4.0 — 2026-05-28 — Detection Depth
 
 ### Added

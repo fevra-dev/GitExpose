@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
@@ -27,6 +27,8 @@ GitExpose finds exposed credentials, sensitive AI-infrastructure configs, and su
 | **Git history scanning** (v0.4) | `git-history` scans all reachable commits for credentials committed and later removed — still in history, often still live. Each secret reported once at its earliest-introducing commit with SHA/author/date. Composes with `--verify`. |
 | **Exposed AI-tool configs** | `.continue/`, `claude/.credentials.json`, MCP configs, LiteLLM proxy configs, CrewAI/AutoGen YAMLs, .NET appsettings build output |
 | **Supply-chain risk** | Unpinned AI middleware, known-malicious package versions (TeamPCP), slopsquatting, `.pth` persistence, AI agent C2 beacons, k8s exfiltration, polyglot files, prompt injection in agent instruction files, malicious agent config payloads |
+| **Live dependency SCA** (v0.5) | Lock-file parsing (Python `requirements`/`poetry.lock`/`Pipfile.lock`, JS `package-lock.json`/`yarn.lock`) + OSV.dev live CVE/GHSA lookups → `vulnerable_dependency` findings, ranked by **exploitability context** (direct/unpinned/fix-available/credential-co-presence), not raw CVSS. Default on; `--offline` for air-gapped use. |
+| **AI-BOM** (v0.5) | CycloneDX 1.6 security BOM (`-o cyclonedx`) with components, dependency-vulnerability VEX (honestly scoped — `exploitable` only when proven), and NTIA minimum elements. |
 | **Compliance metadata** | OWASP LLM Top 10 + MITRE ATLAS technique on every finding |
 | **HTTP target scanning** | `.git`, `.env`, source maps, framework misconfigs, exposed configs |
 
@@ -163,8 +165,15 @@ gitexpose llm-scan https://ai-app.com
 # Invisible Unicode detection
 gitexpose unicode-scan --file suspicious.js
 
-# Local supply-chain scan
+# Local supply-chain scan — now with live dependency SCA (OSV.dev, v0.5)
+# Parses lock files, queries OSV for live CVEs/GHSAs, ranks by exploitability.
 gitexpose supply-chain ./my-project
+
+# Air-gapped / offline: skip OSV, use the curated known-bad list only
+gitexpose supply-chain ./my-project --offline
+
+# Export a CycloneDX 1.6 AI-BOM (components + dependency VEX + NTIA elements)
+gitexpose supply-chain ./my-project -o cyclonedx --out-file sbom.cdx.json
 
 # Supply-chain scan with active credential verification (opt-in)
 # Sends a side-effect-free auth check to each provider; prints a consent banner.
@@ -288,8 +297,11 @@ gitexpose/
 
 The following are designed but not yet shipping. Track via GitHub issues.
 
-- AI-BOM (SPDX 3.0) inventory output — v0.5 candidate
-- Policy engine: configurable severity overrides, allow-list patterns, org-wide suppression rules — v0.5 candidate
+- Policy engine: configurable severity overrides, allow-list patterns, org-wide suppression rules
+- Classic typosquatting (Levenshtein/Jaro-Winkler/homoglyph/keyboard) against popular-package baselines
+- Lock-file poisoning checks (SRI hash mismatch, ghost deps, off-registry resolved URLs) — v0.5 already captures the integrity hashes + URLs needed
+- Shai-Hulud install-time behavioral analysis (lifecycle hooks, credential-harvest AST, metadata-service SSRF)
+- Go (`go.sum`) and Cargo (`Cargo.lock`) ecosystems for SCA
 - Capability/scope enumeration for verified credentials (AWS IAM perms, GitHub PAT scopes, OpenAI org)
 - Active verification for Tier 3 providers (Helicone, Portkey, Voyage, Cohere, Modal, Runpod — detection-only today) and webhook/DB/JWT classes
 - `--verify` on the web-scan path (currently verification runs on `supply-chain` and `git-history` findings only)
@@ -300,6 +312,8 @@ The following are designed but not yet shipping. Track via GitHub issues.
 - Live external threat-intelligence enrichment
 - Audio steganography detection (Telnyx-class)
 - Browser-agent misuse patterns
+
+**Shipped in v0.5:** live dependency SCA — lock-file parsing (Python + JS) + OSV.dev CVE/GHSA lookups (`vulnerable_dependency`, default on, `--offline` opt-out), exploitability-first ranking, and a CycloneDX 1.6 AI-BOM (`-o cyclonedx`) with honestly-scoped VEX — see the [CHANGELOG](CHANGELOG.md).
 
 **Shipped in v0.4:** `git-history` command (all-reachable-commit secret scanning with `--verify` composition), AI-supply-chain signature pack (`polyglot_file`, `skill_prompt_injection`, `agent_config_malicious_content`, `langgrinch_lc_key`), and AWS access+secret pairing for reliable liveness verification — see the [CHANGELOG](CHANGELOG.md).
 
