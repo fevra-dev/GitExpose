@@ -964,10 +964,30 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
                 if f.get("attack_class") or f.get("atlas_technique"):
                     parts = []
                     if f.get("attack_class"):
-                        parts.append(f"OWASP {f['attack_class']}")
+                        ac = f["attack_class"]
+                        parts.append(ac if ac.startswith("OWASP") else f"OWASP {ac}")
                     if f.get("atlas_technique"):
                         parts.append(f"ATLAS {f['atlas_technique']}")
                     lines.append(f"     📋 {' · '.join(parts)}")
+                if ftype == "vulnerable_dependency":
+                    vid = f.get("vuln_id", "?")
+                    fix = f.get("fixed_version")
+                    fixtxt = f"fix: {fix}" if fix else "no fix available"
+                    flags = []
+                    if f.get("direct"):
+                        flags.append("direct")
+                    if not f.get("pinned"):
+                        flags.append("unpinned")
+                    if f.get("cred_co_present"):
+                        flags.append("⚠ creds-co-present")
+                    if f.get("known_exploited"):
+                        flags.append("KEV")
+                    cvss = f.get("cvss_score")
+                    cvss_txt = f" CVSS {cvss}" if cvss else ""
+                    flagtxt = f" [{', '.join(flags)}]" if flags else ""
+                    lines.append(
+                        f"     🔗 {f.get('package')}@{f.get('version')} — {vid}{cvss_txt} ({fixtxt}){flagtxt}"
+                    )
                 if verify:
                     vstatus = f.get("verification_status", "skipped")
                     if vstatus == "verified":

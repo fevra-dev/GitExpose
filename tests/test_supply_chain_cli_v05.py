@@ -67,3 +67,15 @@ def test_cyclonedx_output(tmp_path):
     assert doc["bomFormat"] == "CycloneDX"
     assert any(c["name"] == "lodash" for c in doc["components"])
     assert doc["vulnerabilities"][0]["id"] == "GHSA-xxxx"
+
+
+@respx.mock
+def test_console_renders_vulnerable_dependency(tmp_path):
+    _write_repo(tmp_path)
+    _mock_osv()
+    runner = CliRunner(mix_stderr=False)
+    result = runner.invoke(cli, ["supply-chain", str(tmp_path), "-o", "console"])
+    assert "vulnerable_dependency" in result.output or "GHSA-xxxx" in result.output
+    assert "lodash" in result.output
+    assert "4.17.21" in result.output   # fixed version surfaced
+    assert "OWASP OWASP" not in result.output   # no double-prefix
