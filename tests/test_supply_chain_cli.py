@@ -76,6 +76,16 @@ def test_supply_chain_renders_severity_for_v01_findings(tmp_path: Path):
     assert "[None]" not in result.output, f"Severity rendered as literal None: {result.output}"
 
 
+def test_supply_chain_json_has_no_internal_verify_input(tmp_path):
+    from click.testing import CliRunner
+    (tmp_path / "creds.env").write_text(
+        'aws_access_key_id="AKIAIOSFODNN7EXAMPLE"\n'
+        'aws_secret="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"\n'
+    )
+    result = CliRunner().invoke(cli, ["supply-chain", str(tmp_path), "-o", "json"])
+    assert "_verify_input" not in result.output
+
+
 def test_main_cli_accepts_sarif_output_format():
     """`gitexpose --help` lists sarif as an output choice."""
     from click.testing import CliRunner

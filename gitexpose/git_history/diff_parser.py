@@ -54,7 +54,7 @@ def parse_history(lines: Iterable[str]) -> Iterator[Tuple[CommitMeta, str, str]]
             current_file = None
             continue
 
-        if line.startswith("+++ "):
+        if line.startswith("+++ b/") or line == "+++ /dev/null":
             yield from _flush(commit, current_file, buffer)
             buffer = []
             dest = line[4:].strip()

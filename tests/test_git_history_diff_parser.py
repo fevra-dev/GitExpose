@@ -68,6 +68,23 @@ def test_binary_hunk_yields_no_added_text():
     assert blocks == []
 
 
+def test_content_line_starting_with_plus_plus_is_not_a_header():
+    canned = [
+        f"{SENT}ffffffffffffffffffffffffffffffffffffffff\x00A\x002025-01-01T00:00:00Z",
+        "diff --git a/notes.txt b/notes.txt",
+        "--- /dev/null",
+        "+++ b/notes.txt",
+        "@@ -0,0 +2 @@",
+        "++ this is content that starts with plus-plus",
+        "+OPENAI_API_KEY=sk-ffffffffffffffffffffffffffffff",
+    ]
+    blocks = list(parse_history(iter(canned)))
+    assert len(blocks) == 1
+    _, path, added = blocks[0]
+    assert path == "notes.txt"
+    assert "sk-ffffffffffffffffffffffffffffff" in added
+
+
 def test_dev_null_destination_is_skipped():
     canned = [
         f"{SENT}eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\x00A\x002025-01-01T00:00:00Z",

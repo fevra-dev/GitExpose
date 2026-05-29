@@ -47,6 +47,30 @@ async def test_verify_uses_paired_input_for_aws():
     assert access["verification_status"] == VerificationStatus.VERIFIED.value
 
 
+@pytest.mark.asyncio
+@respx.mock
+async def test_aws_pairing_end_to_end_through_extractor():
+    """Regression: value_full for aws_secret_key includes match context; pairing
+    must extract the clean 40-char secret or SigV4 signs the wrong key and a LIVE
+    key reports DEAD."""
+    import httpx
+    from gitexpose.secrets.secret_extractor import SecretExtractor
+    respx.post("https://sts.amazonaws.com/").mock(
+        return_value=httpx.Response(200, text="<GetCallerIdentityResponse></GetCallerIdentityResponse>")
+    )
+    content = (
+        'aws_access_key_id="AKIAIOSFODNN7EXAMPLE"\n'
+        'aws_secret="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"\n'
+    )
+    secrets = await SecretExtractor().extract(content, source=".env")
+    types = {s["type"] for s in secrets}
+    assert "aws_access_key" in types and "aws_secret_key" in types, f"got {types}"
+    pair_aws_credentials(secrets)
+    await verify_secrets(secrets)
+    access = next(s for s in secrets if s["type"] == "aws_access_key")
+    assert access["verification_status"] == VerificationStatus.VERIFIED.value
+
+
 def test_verify_input_is_internal_only():
     """pair_aws_credentials sets _verify_input; callers must scrub it before
     emitting findings (it contains the secret)."""

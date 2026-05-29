@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any, Awaitable, Callable, Dict, List, Mapping
 
 from .result import VerificationResult, VerificationStatus
@@ -19,6 +20,7 @@ from .providers import VERIFIERS  # the canonical registry
 
 logger = logging.getLogger(__name__)
 
+_AWS_SECRET_RE = re.compile(r"[0-9a-zA-Z/+=]{40}")
 
 _DEFAULT_CONCURRENCY = 5
 _DEFAULT_TIMEOUT = 5.0
@@ -42,7 +44,10 @@ def pair_aws_credentials(secrets: List[Dict[str, Any]]) -> None:
     for f in secrets:
         if f.get("type") == "aws_secret_key":
             src = f.get("source") or ""
-            secrets_by_source.setdefault(src, f.get("value_full") or "")
+            raw = f.get("value_full") or ""
+            m = _AWS_SECRET_RE.search(raw)
+            clean = m.group(0) if m else raw
+            secrets_by_source.setdefault(src, clean)
     for f in secrets:
         if f.get("type") == "aws_access_key":
             src = f.get("source") or ""
