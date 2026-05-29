@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import Dict, List, Optional
+from urllib.parse import quote
 
 import httpx
 
@@ -81,22 +82,39 @@ async def query_osv(
                 ]
                 resp = await client.post(_QUERYBATCH_URL, json={"queries": queries})
                 resp.raise_for_status()
-                results = resp.json().get("results", [])
-                for dep, entry in zip(chunk, results):
-                    ids = [v["id"] for v in (entry or {}).get("vulns", []) if v.get("id")]
-                    if ids:
-                        purl_to_ids[dep.purl] = ids
+                # A 200 with a malformed/non-JSON body must not crash the scan —
+                # skip the batch and continue (spec §9). resp.json() raises
+                # ValueError (JSONDecodeError); an unexpected shape raises
+                # AttributeError/TypeError.
+                try:
+                    results = resp.json().get("results", [])
+                    for dep, entry in zip(chunk, results):
+                        ids = [v["id"] for v in (entry or {}).get("vulns", []) if v.get("id")]
+                        if ids:
+                            purl_to_ids[dep.purl] = ids
+                except Exception as exc:  # noqa: BLE001 — degrade-able enrichment
+                    logger.warning("OSV querybatch parse failed (%s); skipping batch.",
+                                   type(exc).__name__)
 
-            # Phase 2: hydrate each unique vuln ID once.
-            unique_ids = {vid for ids in purl_to_ids.values() for vid in ids}
+            # Phase 2: hydrate each unique vuln ID once. Cap the total to bound
+            # outbound fan-out (a dep with many advisories — or a hostile OSV —
+            # must not amplify into unbounded requests). Sorted for determinism.
+            unique_ids = sorted({vid for ids in purl_to_ids.values() for vid in ids})[:max_deps]
             sem = asyncio.Semaphore(concurrency)
             hydrated: Dict[str, Vulnerability] = {}
 
             async def _hydrate(vid: str) -> None:
+                # vid comes from the (external) OSV response — URL-encode it so it
+                # cannot alter the request path. Any per-vuln failure (network,
+                # malformed body) is logged and skipped, never crashing the scan.
                 async with sem:
-                    r = await client.get(_VULN_URL.format(id=vid))
-                    if r.status_code == 200:
-                        hydrated[vid] = _to_vulnerability(r.json())
+                    try:
+                        r = await client.get(_VULN_URL.format(id=quote(vid, safe="")))
+                        if r.status_code == 200:
+                            hydrated[vid] = _to_vulnerability(r.json())
+                    except Exception as exc:  # noqa: BLE001 — degrade-able enrichment
+                        logger.warning("OSV hydration failed for %r (%s); skipping.",
+                                       vid, type(exc).__name__)
 
             await asyncio.gather(*(_hydrate(vid) for vid in unique_ids))
 

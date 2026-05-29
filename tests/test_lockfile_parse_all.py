@@ -43,3 +43,11 @@ def test_parse_all_walks_mixed_repo(tmp_path: Path):
     assert "requests" in names
     assert "lodash" in names
     assert "evil" not in names   # node_modules is skipped
+
+
+def test_parse_all_skips_oversized_lockfile(tmp_path: Path):
+    # /attack F-004: a pathologically large lock file must be skipped (1 MB cap),
+    # mirroring LocalFilesystemScanner — not read into memory.
+    body = '{"lockfileVersion":3,"packages":{"":{},"node_modules/x":{"version":"1.0.0"}}}'
+    (tmp_path / "package-lock.json").write_text(body + " " * (1024 * 1024 + 16))
+    assert parse_all(tmp_path) == []   # oversized → skipped, no parse

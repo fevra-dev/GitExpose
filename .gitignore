@@ -110,3 +110,6 @@ files (1)/
 Gemini_Generated_Image_*.png
 uv.lock
 .venv/
+
+# Audit working artifacts (/arch /attack /audit)
+.audit/

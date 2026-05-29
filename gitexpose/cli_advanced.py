@@ -880,8 +880,13 @@ def supply_chain(path: str, output: str, out_file: str, offline: bool,
         for f in findings if f.get("type") == "unpinned_ai_middleware"
     }
 
+    # Clamp to sane minimums (a negative --osv-max would silently slice the dep
+    # list; a non-positive timeout would degenerate the OSV request).
+    osv_max = max(0, osv_max)
+    osv_timeout = max(0.1, osv_timeout)
+
     osv_map = {}
-    if not offline and _v05_deps:
+    if not offline and _v05_deps and osv_max:
         if not no_verify_banner:
             click.echo(
                 f"ℹ  Querying OSV.dev for {min(len(_v05_deps), osv_max)} dependencies "

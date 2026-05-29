@@ -26,6 +26,10 @@ _PEP503_RUN = re.compile(r"[-_.]+")
 # Directories never to descend into (mirrors LocalFilesystemScanner).
 _SKIP_DIRS = frozenset({".git", "node_modules", "__pycache__", ".venv", "venv"})
 
+# Largest lock file we will read into memory (mirrors LocalFilesystemScanner's
+# 1 MB cap) — a pathologically large lock file must not exhaust memory.
+_MAX_LOCKFILE_BYTES = 1 * 1024 * 1024
+
 
 def normalize_name(name: str, ecosystem: str) -> str:
     name = name.strip()
@@ -73,6 +77,10 @@ def parse_all(root: Path) -> List[Dependency]:
         if parser is None:
             continue
         try:
+            if path.stat().st_size > _MAX_LOCKFILE_BYTES:
+                logger.warning("Skipping oversized lock file %s (%d bytes > %d cap).",
+                               path, path.stat().st_size, _MAX_LOCKFILE_BYTES)
+                continue
             content = path.read_text(encoding="utf-8", errors="ignore")
         except OSError as exc:
             logger.warning("Could not read lock file %s: %s", path, exc)
