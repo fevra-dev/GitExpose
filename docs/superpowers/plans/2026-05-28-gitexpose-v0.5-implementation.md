@@ -1418,10 +1418,14 @@ Expected: FAIL (module not found).
 
 - [ ] **Step 3: Create `gitexpose/reporters/cyclonedx_reporter.py`**
 
-> NOTE on the library API: `cyclonedx-python-lib` ≥8 builds a `Bom` object and
-> serializes via `JsonV1Dot6` (or `make_outputter`). The code below uses the
-> stable object API. If a future major version renames an import, prefer the
-> documented `cyclonedx.output.make_outputter(bom, OutputFormat.JSON, SchemaVersion.V1_6)`.
+> NOTE on the library API: **Verified against `cyclonedx-python-lib` 11.7.0** (the
+> code below was executed end-to-end and serializes valid CycloneDX 1.6 JSON). Key
+> facts confirmed: `bom.metadata.tools` is a `ToolRepository` with a `.components`
+> SortedSet; `bom.components` / `bom.vulnerabilities` are SortedSets with `.add()`;
+> serialization is `make_outputter(bom, OutputFormat.JSON, SchemaVersion.V1_6).output_as_string(indent=2)`.
+> A `Component.bom_ref.value` is `None` until serialization auto-assigns a UUID — so
+> we set an **explicit** `bom_ref=dep.purl` on each component and reuse that same
+> string for the VEX `BomTarget(ref=...)`, guaranteeing the affects→component link.
 
 ```python
 """CycloneDX 1.6 AI-BOM builder for the supply-chain command.
@@ -1469,12 +1473,15 @@ def build_bom(deps: List[Dependency], findings: List[Dict]) -> str:
     )
 
     # Components — every parsed dependency (NTIA: name, version, PURL, hash).
-    purl_to_component: Dict[str, Component] = {}
+    # Set an EXPLICIT bom_ref (= purl) so the VEX affects-ref is stable and
+    # matches the component (Component.bom_ref.value is None until serialization).
+    known_purls = set()
     for dep in deps:
         comp = Component(
             name=dep.name,
             version=dep.version,
             type=ComponentType.LIBRARY,
+            bom_ref=dep.purl,
             purl=PackageURL.from_string(dep.purl),
             properties=[
                 Property(name="gitexpose:direct", value=str(dep.direct).lower()),
@@ -1482,25 +1489,25 @@ def build_bom(deps: List[Dependency], findings: List[Dict]) -> str:
             ],
         )
         bom.components.add(comp)
-        purl_to_component[dep.purl] = comp
+        known_purls.add(dep.purl)
 
     # Vulnerabilities (VEX) from vulnerable_dependency findings.
     for f in findings:
         if f.get("type") != "vulnerable_dependency":
             continue
-        comp = purl_to_component.get(f.get("purl"))
+        purl = f.get("purl")
         advisories = []
         if f.get("advisory_url"):
             advisories.append(VulnerabilityAdvisory(url=f["advisory_url"]))
+        affects = [BomTarget(ref=purl)] if purl in known_purls else []
         vuln = CdxVulnerability(
             id=f["vuln_id"],
             source=VulnerabilitySource(name="OSV", url=f.get("advisory_url")),
             description=f.get("summary"),
             advisories=advisories,
             analysis=VulnerabilityAnalysis(state=_vex_state(f)),
+            affects=affects,
         )
-        if comp is not None and comp.bom_ref is not None:
-            vuln.affects = [BomTarget(ref=comp.bom_ref.value)]
         bom.vulnerabilities.add(vuln)
 
     outputter = make_outputter(bom, OutputFormat.JSON, SchemaVersion.V1_6)
